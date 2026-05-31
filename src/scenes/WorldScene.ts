@@ -43,7 +43,7 @@ export class WorldScene extends BaseRpgScene {
       this.scene.start("HouseScene", {
         spawnX: 160 + 5 * 32 + 16,
         spawnY: 96 + 6 * 32 + 16,
-        returnX: door.x! + door.width! / 2,
+        returnX: door.x! + door.width! / 1,
         returnY: door.y! + door.height! + 16
       });
     });

@@ -52,18 +52,18 @@ export abstract class BaseRpgScene extends Phaser.Scene {
       });
     }
 
-    if (!this.anims.exists("walk-left")) {
+    if (!this.anims.exists("walk-right")) {
       this.anims.create({
-        key: "walk-left",
+        key: "walk-right",
         frames: this.anims.generateFrameNumbers("player", { start: 3, end: 5 }),
         frameRate: 8,
         repeat: -1
       });
     }
 
-    if (!this.anims.exists("walk-right")) {
+    if (!this.anims.exists("walk-left")) {
       this.anims.create({
-        key: "walk-right",
+        key: "walk-left",
         frames: this.anims.generateFrameNumbers("player", { start: 6, end: 8 }),
         frameRate: 8,
         repeat: -1
