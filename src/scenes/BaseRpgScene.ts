@@ -1,0 +1,149 @@
+import Phaser from "phaser";
+
+type Direction = "down" | "left" | "right" | "up";
+
+export abstract class BaseRpgScene extends Phaser.Scene {
+  protected player!: Phaser.Physics.Arcade.Sprite;
+  protected cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  protected wasd!: Record<string, Phaser.Input.Keyboard.Key>;
+  protected speed = 120;
+
+  preload() {
+    this.load.image("tiles", "/assets/tilesets/minimal-rpg-tileset.png");
+    this.load.spritesheet("player", "/assets/sprites/player.png", {
+      frameWidth: 32,
+      frameHeight: 32
+    });
+  }
+
+  protected createPlayer(x: number, y: number) {
+    this.player = this.physics.add.sprite(x, y, "player", 1);
+    this.player.setSize(18, 18);
+    this.player.setOffset(7, 12);
+    this.player.setCollideWorldBounds(true);
+    this.player.setDepth(y);
+
+    this.cursors = this.input.keyboard!.createCursorKeys();
+    this.wasd = this.input.keyboard!.addKeys("W,A,S,D") as Record<string, Phaser.Input.Keyboard.Key>;
+
+    this.registerPlayerAnimations();
+  }
+
+  protected getTriggerZone(map: Phaser.Tilemaps.Tilemap, layerName: string, objectName: string) {
+    const object = map.findObject(layerName, entry => entry.name === objectName);
+
+    if (!object || object.x == null || object.y == null || object.width == null || object.height == null) {
+      throw new Error(`Trigger object "${objectName}" was not found in layer "${layerName}".`);
+    }
+
+    const zone = this.add.zone(object.x + object.width / 2, object.y + object.height / 2, object.width, object.height);
+    this.physics.add.existing(zone, true);
+
+    return { object, zone };
+  }
+
+  private registerPlayerAnimations() {
+    if (!this.anims.exists("walk-down")) {
+      this.anims.create({
+        key: "walk-down",
+        frames: this.anims.generateFrameNumbers("player", { start: 0, end: 2 }),
+        frameRate: 8,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists("walk-left")) {
+      this.anims.create({
+        key: "walk-left",
+        frames: this.anims.generateFrameNumbers("player", { start: 3, end: 5 }),
+        frameRate: 8,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists("walk-right")) {
+      this.anims.create({
+        key: "walk-right",
+        frames: this.anims.generateFrameNumbers("player", { start: 6, end: 8 }),
+        frameRate: 8,
+        repeat: -1
+      });
+    }
+
+    if (!this.anims.exists("walk-up")) {
+      this.anims.create({
+        key: "walk-up",
+        frames: this.anims.generateFrameNumbers("player", { start: 9, end: 11 }),
+        frameRate: 8,
+        repeat: -1
+      });
+    }
+  }
+
+  protected movePlayer() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0);
+
+    let dir: Direction = "down";
+    const left = this.cursors.left.isDown || this.wasd.A.isDown;
+    const right = this.cursors.right.isDown || this.wasd.D.isDown;
+    const up = this.cursors.up.isDown || this.wasd.W.isDown;
+    const down = this.cursors.down.isDown || this.wasd.S.isDown;
+
+    if (left) {
+      body.setVelocityX(-this.speed);
+      dir = "left";
+    } else if (right) {
+      body.setVelocityX(this.speed);
+      dir = "right";
+    }
+
+    if (up) {
+      body.setVelocityY(-this.speed);
+      dir = "up";
+    } else if (down) {
+      body.setVelocityY(this.speed);
+      dir = "down";
+    }
+
+    if (left || right || up || down) {
+      body.velocity.normalize().scale(this.speed);
+      this.player.anims.play(`walk-${dir}`, true);
+    } else {
+      this.player.anims.stop();
+    }
+  }
+
+  protected buildMap(mapKey: string) {
+    const map = this.make.tilemap({ key: mapKey });
+    const tileset = map.addTilesetImage("minimal-rpg-tileset", "tiles");
+
+    if (!tileset) {
+      throw new Error(`Tileset "minimal-rpg-tileset" could not be resolved for map "${mapKey}".`);
+    }
+
+    const ground = map.createLayer("Ground", tileset, 0, 0)!;
+    const objects = map.createLayer("Objects", tileset, 0, 0)!;
+    const collision = map.createLayer("Collision", tileset, 0, 0)!;
+    collision.setCollisionByExclusion([-1]);
+    collision.setVisible(false);
+
+    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+    return { map, ground, objects, collision };
+  }
+
+  protected addHint(text: string) {
+    this.add
+      .text(12, 12, text, {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#ffffff",
+        backgroundColor: "#000000aa",
+        padding: { x: 8, y: 6 }
+      })
+      .setScrollFactor(0)
+      .setDepth(100);
+  }
+}
