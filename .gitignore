@@ -49,3 +49,7 @@ Desktop.ini
 
 # Local agent memory
 .agent/
+
+# Local Caveman workspace
+.cave/
+skills/

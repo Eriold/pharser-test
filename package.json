@@ -10,6 +10,7 @@
     "format:maps": "node scripts/format-tiled-map.mjs"
   },
   "dependencies": {
+    "@juliusbrussee/caveman-code": "^0.65.2",
     "phaser": "latest"
   },
   "devDependencies": {

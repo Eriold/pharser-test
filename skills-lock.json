@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "phaser-rpg": {
+      "source": ".cave/skills/phaser-rpg",
+      "sourceType": "local",
+      "skillPath": ".cave/skills/phaser-rpg/SKILL.md",
+      "computedHash": "BFF6DBD756F9CA682B4F8F26337B5C7054352FA1EE044E813C19CB65099AED35"
+    }
+  }
+}
