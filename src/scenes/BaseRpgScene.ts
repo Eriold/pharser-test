@@ -114,7 +114,7 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     }
   }
 
-  protected buildMap(mapKey: string) {
+  protected buildMap(mapKey: string, offsetX = 0, offsetY = 0) {
     const map = this.make.tilemap({ key: mapKey });
     const tileset = map.addTilesetImage("minimal-rpg-tileset", "tiles");
 
@@ -122,14 +122,14 @@ export abstract class BaseRpgScene extends Phaser.Scene {
       throw new Error(`Tileset "minimal-rpg-tileset" could not be resolved for map "${mapKey}".`);
     }
 
-    const ground = map.createLayer("Ground", tileset, 0, 0)!;
-    const objects = map.createLayer("Objects", tileset, 0, 0)!;
-    const collision = map.createLayer("Collision", tileset, 0, 0)!;
+    const ground = map.createLayer("Ground", tileset, offsetX, offsetY)!;
+    const objects = map.createLayer("Objects", tileset, offsetX, offsetY)!;
+    const collision = map.createLayer("Collision", tileset, offsetX, offsetY)!;
     collision.setCollisionByExclusion([-1]);
     collision.setVisible(false);
 
-    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.physics.world.setBounds(offsetX, offsetY, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.setBounds(offsetX, offsetY, map.widthInPixels, map.heightInPixels);
 
     return { map, ground, objects, collision };
   }

@@ -41,8 +41,8 @@ export class WorldScene extends BaseRpgScene {
 
       this.transitionLocked = true;
       this.scene.start("HouseScene", {
-        spawnX: 5 * 32,
-        spawnY: 2 * 32,
+        spawnX: 160 + 5 * 32 + 16,
+        spawnY: 96 + 6 * 32 + 16,
         returnX: door.x! + door.width! / 2,
         returnY: door.y! + door.height! + 16
       });
