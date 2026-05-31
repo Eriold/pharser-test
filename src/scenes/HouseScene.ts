@@ -32,7 +32,7 @@ export class HouseScene extends BaseRpgScene {
 
   preload() {
     super.preload();
-    this.load.tilemapTiledJSON("house", "/assets/maps/house.json");
+    this.load.tilemapTiledJSON("house", "/assets/maps/house.map.json");
   }
 
   create() {

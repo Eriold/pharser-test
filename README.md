@@ -33,8 +33,8 @@ pnpm build
 
 - `public/assets/tilesets/minimal-rpg-tileset.png`
 - `public/assets/sprites/player.png`
-- `public/assets/maps/world.json`
-- `public/assets/maps/house.json`
+- `public/assets/maps/world.map.json`
+- `public/assets/maps/house.map.json`
 - `src/scenes/WorldScene.ts`
 - `src/scenes/HouseScene.ts`
 

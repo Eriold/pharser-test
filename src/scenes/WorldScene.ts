@@ -22,7 +22,7 @@ export class WorldScene extends BaseRpgScene {
 
   preload() {
     super.preload();
-    this.load.tilemapTiledJSON("world", "/assets/maps/world.json");
+    this.load.tilemapTiledJSON("world", "/assets/maps/world.map.json");
   }
 
   create() {
@@ -40,12 +40,12 @@ export class WorldScene extends BaseRpgScene {
       }
 
       this.transitionLocked = true;
-      this.scene.start("HouseScene", {
-        spawnX: 160 + 5 * 32 + 16,
-        spawnY: 96 + 6 * 32 + 16,
-        returnX: door.x! + door.width! / 1,
-        returnY: door.y! + door.height! + 16
-      });
+        this.scene.start("HouseScene", {
+          spawnX: 160 + 5 * 32 + 16,
+          spawnY: 96 + 6 * 32 + 16,
+          returnX: door.x! + door.width! / 2,
+          returnY: door.y! + door.height! + 16
+        });
     });
 
     this.addHint("Ciudad exterior: muévete con WASD/Flechas y entra a la casa.");
