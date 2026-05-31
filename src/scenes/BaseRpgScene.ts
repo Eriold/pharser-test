@@ -6,20 +6,23 @@ export abstract class BaseRpgScene extends Phaser.Scene {
   protected player!: Phaser.Physics.Arcade.Sprite;
   protected cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   protected wasd!: Record<string, Phaser.Input.Keyboard.Key>;
-  protected speed = 120;
+  protected speed = 150;
+  protected readonly tileSize = 32;
+  protected readonly mapScale = 2;
 
   preload() {
     this.load.image("tiles", "/assets/tilesets/minimal-rpg-tileset.png");
-    this.load.spritesheet("player", "/assets/sprites/player.png", {
-      frameWidth: 32,
-      frameHeight: 32
+    this.load.spritesheet("player", "/assets/sprites/prota-sprite.png", {
+      frameWidth: 96,
+      frameHeight: 108
     });
   }
 
   protected createPlayer(x: number, y: number) {
     this.player = this.physics.add.sprite(x, y, "player", 1);
-    this.player.setSize(18, 18);
-    this.player.setOffset(7, 12);
+    this.player.setDisplaySize(79, 89);
+    this.player.setSize(28, 16);
+    this.player.setOffset(34, 88);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(y);
 
@@ -36,18 +39,39 @@ export abstract class BaseRpgScene extends Phaser.Scene {
       throw new Error(`Trigger object "${objectName}" was not found in layer "${layerName}".`);
     }
 
-    const zone = this.add.zone(object.x + object.width / 2, object.y + object.height / 2, object.width, object.height);
+    const zone = this.add.zone(
+      (object.x + object.width / 2) * this.mapScale,
+      (object.y + object.height / 2) * this.mapScale,
+      object.width * this.mapScale,
+      object.height * this.mapScale
+    );
     this.physics.add.existing(zone, true);
 
     return { object, zone };
+  }
+
+  protected tileToWorld(tile: number) {
+    return tile * this.tileSize * this.mapScale;
+  }
+
+  protected setPlayerIdle(direction: Direction) {
+    const idleFrames: Record<Direction, number> = {
+      down: 0,
+      up: 6,
+      left: 12,
+      right: 18
+    };
+
+    this.player.anims.stop();
+    this.player.setFrame(idleFrames[direction]);
   }
 
   private registerPlayerAnimations() {
     if (!this.anims.exists("walk-down")) {
       this.anims.create({
         key: "walk-down",
-        frames: this.anims.generateFrameNumbers("player", { start: 0, end: 2 }),
-        frameRate: 8,
+        frames: this.anims.generateFrameNumbers("player", { start: 0, end: 5 }),
+        frameRate: 12,
         repeat: -1
       });
     }
@@ -55,8 +79,8 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     if (!this.anims.exists("walk-right")) {
       this.anims.create({
         key: "walk-right",
-        frames: this.anims.generateFrameNumbers("player", { start: 3, end: 5 }),
-        frameRate: 8,
+        frames: this.anims.generateFrameNumbers("player", { start: 18, end: 23 }),
+        frameRate: 12,
         repeat: -1
       });
     }
@@ -64,8 +88,8 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     if (!this.anims.exists("walk-left")) {
       this.anims.create({
         key: "walk-left",
-        frames: this.anims.generateFrameNumbers("player", { start: 6, end: 8 }),
-        frameRate: 8,
+        frames: this.anims.generateFrameNumbers("player", { start: 12, end: 17 }),
+        frameRate: 12,
         repeat: -1
       });
     }
@@ -73,8 +97,8 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     if (!this.anims.exists("walk-up")) {
       this.anims.create({
         key: "walk-up",
-        frames: this.anims.generateFrameNumbers("player", { start: 9, end: 11 }),
-        frameRate: 8,
+        frames: this.anims.generateFrameNumbers("player", { start: 6, end: 11 }),
+        frameRate: 12,
         repeat: -1
       });
     }
@@ -125,11 +149,24 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     const ground = map.createLayer("Ground", tileset, offsetX, offsetY)!;
     const objects = map.createLayer("Objects", tileset, offsetX, offsetY)!;
     const collision = map.createLayer("Collision", tileset, offsetX, offsetY)!;
+    ground.setScale(this.mapScale);
+    objects.setScale(this.mapScale);
+    collision.setScale(this.mapScale);
     collision.setCollisionByExclusion([-1]);
     collision.setVisible(false);
 
-    this.physics.world.setBounds(offsetX, offsetY, map.widthInPixels, map.heightInPixels);
-    this.cameras.main.setBounds(offsetX, offsetY, map.widthInPixels, map.heightInPixels);
+    this.physics.world.setBounds(
+      offsetX,
+      offsetY,
+      map.widthInPixels * this.mapScale,
+      map.heightInPixels * this.mapScale
+    );
+    this.cameras.main.setBounds(
+      offsetX,
+      offsetY,
+      map.widthInPixels * this.mapScale,
+      map.heightInPixels * this.mapScale
+    );
 
     return { map, ground, objects, collision };
   }

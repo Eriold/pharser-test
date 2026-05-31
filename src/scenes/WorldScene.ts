@@ -6,8 +6,8 @@ type WorldSceneData = {
 };
 
 export class WorldScene extends BaseRpgScene {
-  private spawnX = 12 * 32;
-  private spawnY = 9 * 32;
+  private spawnX = this.tileToWorld(16);
+  private spawnY = this.tileToWorld(12);
   private transitionLocked = false;
 
   constructor() {
@@ -15,8 +15,8 @@ export class WorldScene extends BaseRpgScene {
   }
 
   init(data: WorldSceneData) {
-    this.spawnX = data.spawnX ?? 12 * 32;
-    this.spawnY = data.spawnY ?? 9 * 32;
+    this.spawnX = data.spawnX ?? this.tileToWorld(16);
+    this.spawnY = data.spawnY ?? this.tileToWorld(12);
     this.transitionLocked = false;
   }
 
@@ -40,12 +40,12 @@ export class WorldScene extends BaseRpgScene {
       }
 
       this.transitionLocked = true;
-        this.scene.start("HouseScene", {
-          spawnX: 160 + 5 * 32 + 16,
-          spawnY: 96 + 6 * 32 + 16,
-          returnX: door.x! + door.width! / 2,
-          returnY: door.y! + door.height! + 16
-        });
+      this.scene.start("HouseScene", {
+        spawnX: 320 + this.tileToWorld(5) + this.tileSize,
+        spawnY: 104 + this.tileToWorld(5) + this.tileSize,
+        returnX: (door.x! + door.width! / 2) * this.mapScale,
+        returnY: (door.y! + door.height! + 16) * this.mapScale
+      });
     });
 
     this.addHint("Ciudad exterior: muévete con WASD/Flechas y entra a la casa.");
