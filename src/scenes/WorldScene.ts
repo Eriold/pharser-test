@@ -15,6 +15,8 @@ export class WorldScene extends BaseRpgScene {
   private npcRouteIndex = 0;
   private npcRouteDirection: 1 | -1 = 1;
   private readonly npcSpeed = 72;
+  private readonly npcPauseDistance = 116;
+  private npcFacing: "down" | "left" | "right" | "up" = "down";
 
   constructor() {
     super("WorldScene");
@@ -44,6 +46,7 @@ export class WorldScene extends BaseRpgScene {
 
     const { object: door, zone } = this.getTriggerZone(map, "Triggers", "enter_house");
     this.createGirlNpc(zone, collision as Phaser.Tilemaps.TilemapLayer);
+    this.physics.add.collider(this.player, this.npc);
 
     this.physics.add.overlap(this.player, zone, () => {
       if (this.transitionLocked) {
@@ -81,8 +84,8 @@ export class WorldScene extends BaseRpgScene {
     const startPoint = this.npcRoute[0];
     this.npc = this.physics.add.sprite(startPoint.x, startPoint.y, "girl-npc", 0);
     this.npc.setDisplaySize(70, 79);
-    this.npc.setSize(28, 16);
-    this.npc.setOffset(34, 88);
+    this.npc.setSize(36, 20);
+    this.npc.setOffset(30, 84);
     this.npc.setDepth(this.npc.y);
     this.npc.setImmovable(true);
     this.npcRouteIndex = 1;
@@ -137,6 +140,20 @@ export class WorldScene extends BaseRpgScene {
     }
 
     const body = this.npc.body as Phaser.Physics.Arcade.Body;
+    const playerDistance = Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      this.npc.x,
+      this.npc.y
+    );
+
+    if (playerDistance <= this.npcPauseDistance) {
+      body.setVelocity(0);
+      this.setGirlNpcIdle(this.npcFacing);
+      this.npc.setDepth(this.npc.y);
+      return;
+    }
+
     const target = this.npcRoute[this.npcRouteIndex];
     const dx = target.x - this.npc.x;
     const dy = target.y - this.npc.y;
@@ -153,9 +170,11 @@ export class WorldScene extends BaseRpgScene {
 
     if (Math.abs(dx) > Math.abs(dy)) {
       body.setVelocityX(Math.sign(dx) * this.npcSpeed);
+      this.npcFacing = dx > 0 ? "right" : "left";
       this.npc.anims.play(dx > 0 ? "girl-walk-right" : "girl-walk-left", true);
     } else {
       body.setVelocityY(Math.sign(dy) * this.npcSpeed);
+      this.npcFacing = dy > 0 ? "down" : "up";
       this.npc.anims.play(dy > 0 ? "girl-walk-down" : "girl-walk-up", true);
     }
 
@@ -190,6 +209,7 @@ export class WorldScene extends BaseRpgScene {
       right: 18
     };
 
+    this.npcFacing = direction;
     this.npc.anims.stop();
     this.npc.setFrame(idleFrames[direction]);
   }

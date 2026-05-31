@@ -21,8 +21,8 @@ export abstract class BaseRpgScene extends Phaser.Scene {
   protected createPlayer(x: number, y: number) {
     this.player = this.physics.add.sprite(x, y, "player", 1);
     this.player.setDisplaySize(79, 89);
-    this.player.setSize(28, 16);
-    this.player.setOffset(34, 88);
+    this.player.setSize(36, 20);
+    this.player.setOffset(30, 84);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(y);
 
