@@ -23,6 +23,7 @@ export class WorldScene extends BaseRpgScene {
   private npcs: NpcEntry[] = [];
   private dialogueTypewriter = new NpcDialogueTypewriter();
   private routeFlow: NpcRouteFlow | null = null;
+  private successCloseTimer: Phaser.Time.TimerEvent | null = null;
   private readonly talkDistance = 120;
   private dialogueBarHeight = 212;
   private readonly npcDefinitions = NPC_DEFINITIONS;
@@ -90,9 +91,16 @@ export class WorldScene extends BaseRpgScene {
       this.dialogueTypewriter.update(delta);
       this.routeFlow?.setVisible(this.dialogueTypewriter.isComplete());
 
+      if (this.isSuccessDialogueActive() && this.dialogueTypewriter.isComplete()) {
+        this.scheduleSuccessClose();
+      }
+
       if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
         this.dialogueTypewriter.skip();
         this.routeFlow?.setVisible(true);
+        if (this.isSuccessDialogueActive()) {
+          this.scheduleSuccessClose();
+        }
       }
 
       if (Phaser.Input.Keyboard.JustDown(this.qKey)) {
@@ -175,9 +183,11 @@ export class WorldScene extends BaseRpgScene {
       return;
     }
 
-    this.dialogueBarHeight = this.activeNpc?.definition.routeFlow?.panelHeight ?? 212;
+    this.dialogueBarHeight = this.isSuccessDialogueActive() ? 212 : this.activeNpc?.definition.routeFlow?.panelHeight ?? 212;
     this.dialogOpen = true;
-    this.playActiveNpcAudio();
+    if (!this.isSuccessDialogueActive()) {
+      this.playActiveNpcAudio();
+    }
     this.buildDialogUi();
   }
 
@@ -187,6 +197,7 @@ export class WorldScene extends BaseRpgScene {
     }
 
     this.stopActiveNpcAudio();
+    this.clearSuccessCloseTimer();
     this.dialogOpen = false;
     this.activeNpc = null;
     this.dialogueTypewriter.clear();
@@ -255,6 +266,7 @@ export class WorldScene extends BaseRpgScene {
     }
 
     const definition = this.activeNpc.definition;
+    const isSuccessDialogue = this.isSuccessDialogueActive();
     const width = this.scale.width;
     const height = this.scale.height;
     const barY = height - this.dialogueBarHeight;
@@ -269,7 +281,7 @@ export class WorldScene extends BaseRpgScene {
     const portraitFrame = this.add.rectangle(portraitX, portraitY, 206, 206, 0x000000, 0);
 
     const title = this.add
-      .text(264, barY + 24, `${definition.name} is lost`, {
+      .text(264, barY + 24, isSuccessDialogue ? "Thank you!!" : `${definition.name} is lost`, {
         fontFamily: "monospace",
         fontSize: "26px",
         fontStyle: "bold",
@@ -278,7 +290,7 @@ export class WorldScene extends BaseRpgScene {
       .setOrigin(0);
 
     const prompt = this.add
-      .text(width - 550, barY + this.dialogueBarHeight - 42, "Press Q for quit", {
+      .text(width - 550, barY + this.dialogueBarHeight - 42, isSuccessDialogue ? "Closing..." : "Press Q for quit", {
         fontFamily: "monospace",
         fontSize: "18px",
         color: "#ffffff"
@@ -295,9 +307,12 @@ export class WorldScene extends BaseRpgScene {
       .setOrigin(0);
 
     this.dialogueTypewriter.attach(placeholderText);
-    this.dialogueTypewriter.start(definition.dialogueText, definition.dialogueTextSpeedMs ?? 24);
+    this.dialogueTypewriter.start(
+      isSuccessDialogue ? definition.successDialogueText ?? "Thank you!!" : definition.dialogueText,
+      isSuccessDialogue ? definition.successDialogueTextSpeedMs ?? 24 : definition.dialogueTextSpeedMs ?? 24
+    );
 
-    if (definition.routeFlow) {
+    if (definition.routeFlow && !isSuccessDialogue) {
       this.routeFlow = new NpcRouteFlow(
         this,
         definition.routeFlow,
@@ -310,16 +325,55 @@ export class WorldScene extends BaseRpgScene {
         () => {
           this.activeNpc!.resultState = "happy";
           this.updateNpcIndicators();
-          this.routeFlow?.setVisible(true);
+          this.showSuccessDialogue();
         }
       );
       this.routeFlow.setVisible(false);
+    } else {
+      this.routeFlow = null;
     }
 
     [bar, barLine, portraitFrame, portrait, title, placeholderText, prompt].forEach(element => {
       element.setScrollFactor(0).setDepth(1000);
       this.dialogElements.push(element);
     });
+  }
+
+  private isSuccessDialogueActive() {
+    return this.activeNpc?.resultState === "happy";
+  }
+
+  private scheduleSuccessClose() {
+    if (this.successCloseTimer || !this.dialogOpen) {
+      return;
+    }
+
+    const delay = this.activeNpc?.definition.successAutoCloseDelayMs ?? 1400;
+    this.successCloseTimer = this.time.delayedCall(delay, () => {
+      this.successCloseTimer = null;
+      this.closeDialog();
+    });
+  }
+
+  private clearSuccessCloseTimer() {
+    this.successCloseTimer?.remove(false);
+    this.successCloseTimer = null;
+  }
+
+  private showSuccessDialogue() {
+    if (!this.activeNpc) {
+      return;
+    }
+
+    this.clearSuccessCloseTimer();
+    this.stopActiveNpcAudio();
+    this.routeFlow?.destroy();
+    this.routeFlow = null;
+    this.dialogueTypewriter.clear();
+    this.dialogElements.forEach(element => element.destroy());
+    this.dialogElements = [];
+    this.dialogueBarHeight = 212;
+    this.buildDialogUi();
   }
 
   private handleResize(gameSize: Phaser.Structs.Size) {

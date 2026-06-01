@@ -52,6 +52,9 @@ export const NPC_DEFINITIONS: NpcDefinition[] = [
     },
     dialogueText: "Hi Hanlly, I'm tired and lost, could you help me? I need to get to the library.",
     dialogueTextSpeedMs: 70,
+    successDialogueText: "Thank you!!",
+    successDialogueTextSpeedMs: 40,
+    successAutoCloseDelayMs: 1400,
     routeOptions: ["Go to the bus stop", "Walk past the store", "Turn right", "Enter the school"],
     correctRoute: ["Walk past the store", "Turn right", "Go to the bus stop"],
     routeFlow: {
