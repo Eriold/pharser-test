@@ -12,7 +12,7 @@ export class NpcRouteFlow {
   private readonly scene: Phaser.Scene;
   private readonly definition: NpcRouteFlowDefinition;
   private readonly layout: RouteFlowLayout;
-  private readonly onComplete: () => void;
+  private readonly onResolve: (success: boolean) => void;
   private readonly objects: Array<Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text> = [];
   private readonly uiDepth = 1001;
   private stageIndex = 0;
@@ -31,11 +31,11 @@ export class NpcRouteFlow {
   private resetButtonText!: Phaser.GameObjects.Text;
   private stageObjects: Array<Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text> = [];
 
-  constructor(scene: Phaser.Scene, definition: NpcRouteFlowDefinition, layout: RouteFlowLayout, onComplete: () => void) {
+  constructor(scene: Phaser.Scene, definition: NpcRouteFlowDefinition, layout: RouteFlowLayout, onResolve: (success: boolean) => void) {
     this.scene = scene;
     this.definition = definition;
     this.layout = layout;
-    this.onComplete = onComplete;
+    this.onResolve = onResolve;
     this.buildShell();
     this.renderStage();
     this.setVisible(false);
@@ -217,7 +217,12 @@ export class NpcRouteFlow {
   }
 
   private onActionClicked() {
+    if (!this.hasAttempt()) {
+      return;
+    }
+
     if (!this.isStageReady()) {
+      this.onResolve(false);
       return;
     }
 
@@ -229,7 +234,7 @@ export class NpcRouteFlow {
       return;
     }
 
-    this.onComplete();
+    this.onResolve(true);
   }
 
   private resetStage() {
@@ -263,6 +268,15 @@ export class NpcRouteFlow {
     }
 
     return stage.choices.some(choice => choice.id === this.selectedChoiceId && choice.correct);
+  }
+
+  private hasAttempt() {
+    const stage = this.currentStage();
+    if (stage.kind === "arrange") {
+      return this.selectedTokenIds.length === stage.answerTokenIds.length;
+    }
+
+    return this.selectedChoiceId !== null;
   }
 
   private labelForToken(stage: RouteArrangeStage, tokenId: string) {

@@ -183,9 +183,9 @@ export class WorldScene extends BaseRpgScene {
       return;
     }
 
-    this.dialogueBarHeight = this.isSuccessDialogueActive() ? 212 : this.activeNpc?.definition.routeFlow?.panelHeight ?? 212;
+    this.dialogueBarHeight = this.isTerminalDialogueActive() ? 212 : this.activeNpc?.definition.routeFlow?.panelHeight ?? 212;
     this.dialogOpen = true;
-    if (!this.isSuccessDialogueActive()) {
+    if (!this.isTerminalDialogueActive()) {
       this.playActiveNpcAudio();
     }
     this.buildDialogUi();
@@ -267,6 +267,8 @@ export class WorldScene extends BaseRpgScene {
 
     const definition = this.activeNpc.definition;
     const isSuccessDialogue = this.isSuccessDialogueActive();
+    const isFailureDialogue = this.isFailureDialogueActive();
+    const isTerminalDialogue = isSuccessDialogue || isFailureDialogue;
     const width = this.scale.width;
     const height = this.scale.height;
     const barY = height - this.dialogueBarHeight;
@@ -281,7 +283,7 @@ export class WorldScene extends BaseRpgScene {
     const portraitFrame = this.add.rectangle(portraitX, portraitY, 206, 206, 0x000000, 0);
 
     const title = this.add
-      .text(264, barY + 24, isSuccessDialogue ? "Thank you!!" : `${definition.name} is lost`, {
+      .text(264, barY + 24, isTerminalDialogue ? definition.name : `${definition.name} is lost`, {
         fontFamily: "monospace",
         fontSize: "26px",
         fontStyle: "bold",
@@ -290,7 +292,7 @@ export class WorldScene extends BaseRpgScene {
       .setOrigin(0);
 
     const prompt = this.add
-      .text(width - 550, barY + this.dialogueBarHeight - 42, isSuccessDialogue ? "Closing..." : "Press Q for quit", {
+      .text(width - 550, barY + this.dialogueBarHeight - 42, "Press Q for quit", {
         fontFamily: "monospace",
         fontSize: "18px",
         color: "#ffffff"
@@ -308,11 +310,19 @@ export class WorldScene extends BaseRpgScene {
 
     this.dialogueTypewriter.attach(placeholderText);
     this.dialogueTypewriter.start(
-      isSuccessDialogue ? definition.successDialogueText ?? "Thank you!!" : definition.dialogueText,
-      isSuccessDialogue ? definition.successDialogueTextSpeedMs ?? 24 : definition.dialogueTextSpeedMs ?? 24
+      isSuccessDialogue
+        ? definition.successDialogueText ?? "Thank you!!"
+        : isFailureDialogue
+          ? definition.failureDialogueText ?? "Thanks to you I will never arrive"
+          : definition.dialogueText,
+      isSuccessDialogue
+        ? definition.successDialogueTextSpeedMs ?? 24
+        : isFailureDialogue
+          ? definition.failureDialogueTextSpeedMs ?? 24
+          : definition.dialogueTextSpeedMs ?? 24
     );
 
-    if (definition.routeFlow && !isSuccessDialogue) {
+    if (definition.routeFlow && !isTerminalDialogue) {
       this.routeFlow = new NpcRouteFlow(
         this,
         definition.routeFlow,
@@ -322,10 +332,10 @@ export class WorldScene extends BaseRpgScene {
           width: width - 360,
           height: this.dialogueBarHeight - 118
         },
-        () => {
-          this.activeNpc!.resultState = "happy";
+        success => {
+          this.activeNpc!.resultState = success ? "happy" : "angry";
           this.updateNpcIndicators();
-          this.showSuccessDialogue();
+          this.showResolutionDialogue();
         }
       );
       this.routeFlow.setVisible(false);
@@ -341,6 +351,14 @@ export class WorldScene extends BaseRpgScene {
 
   private isSuccessDialogueActive() {
     return this.activeNpc?.resultState === "happy";
+  }
+
+  private isFailureDialogueActive() {
+    return this.activeNpc?.resultState === "angry";
+  }
+
+  private isTerminalDialogueActive() {
+    return this.isSuccessDialogueActive() || this.isFailureDialogueActive();
   }
 
   private scheduleSuccessClose() {
@@ -360,7 +378,7 @@ export class WorldScene extends BaseRpgScene {
     this.successCloseTimer = null;
   }
 
-  private showSuccessDialogue() {
+  private showResolutionDialogue() {
     if (!this.activeNpc) {
       return;
     }

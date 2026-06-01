@@ -28,6 +28,8 @@ export type NpcDefinition = {
   successDialogueText?: string;
   successDialogueTextSpeedMs?: number;
   successAutoCloseDelayMs?: number;
+  failureDialogueText?: string;
+  failureDialogueTextSpeedMs?: number;
   routeOptions: string[];
   correctRoute: string[];
   routeFlow?: NpcRouteFlowDefinition;

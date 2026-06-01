@@ -1,4 +1,5 @@
 import type { NpcDefinition } from "../systems/npc/NpcTypes";
+import { createArrangeStage, createChoiceStage, createRouteFlow } from "./npcRoutePresets";
 
 const defaultNpcBody = {
   displayWidth: 70,
@@ -8,6 +9,53 @@ const defaultNpcBody = {
   bodyOffsetX: 30,
   bodyOffsetY: 84
 };
+
+const routeFlowPalette = createRouteFlow(332, [
+  createArrangeStage("route-s1", "Stage 1: build the sentence.", [
+    "Continue",
+    "Straight",
+    "to",
+    "the",
+    "intersection."
+  ]),
+  createChoiceStage("route-s2", "Stage 2: choose the next turn.", [
+    { label: "Turn Left", correct: true },
+    { label: "Turn Right", correct: false },
+    { label: "Go Back", correct: false },
+    { label: "Stop here", correct: false }
+  ]),
+  createArrangeStage("route-s3", "Stage 3: build the sentence.", [
+    "Continue",
+    "Straight",
+    "past",
+    "the",
+    "Supermarket,",
+    "the",
+    "Convenience",
+    "Store,",
+    "and",
+    "the",
+    "Cafe."
+  ]),
+  createChoiceStage("route-s4", "Stage 4: choose the next turn.", [
+    { label: "Turn Left", correct: false },
+    { label: "Turn Right", correct: true },
+    { label: "Go Straight", correct: false },
+    { label: "Stop here", correct: false }
+  ]),
+  createArrangeStage("route-s5", "Stage 5: build the sentence.", [
+    "Continue",
+    "Straight."
+  ]),
+  createArrangeStage("route-s6", "Stage 6: arrive at the destination.", [
+    "Arrive",
+    "at",
+    "your",
+    "destination,",
+    "the",
+    "School."
+  ], "Indicate")
+]);
 
 export const NPC_DEFINITIONS: NpcDefinition[] = [
   {
@@ -23,10 +71,27 @@ export const NPC_DEFINITIONS: NpcDefinition[] = [
       key: "girl-npc-character",
       path: "/assets/character-g1-npc.png"
     },
-    dialogueText: "I am lost. Can you help me find the right place?",
+    audio: {
+      key: "girl-npc-audio",
+      path: "/assets/sounds/g1-npc.m4a"
+    },
+    dialogueText: "Good afternoon Hanlly, I missed the bus, can you tell me how to get to school?",
     dialogueTextSpeedMs: 24,
-    routeOptions: ["Go straight", "Turn left", "Turn right", "Stop at the park"],
-    correctRoute: ["Go straight", "Turn left", "Stop at the park"],
+    successDialogueText: "Thank you!!",
+    successDialogueTextSpeedMs: 40,
+    successAutoCloseDelayMs: 1400,
+    failureDialogueText: "Thanks to you I will never arrive",
+    failureDialogueTextSpeedMs: 40,
+    routeOptions: ["Turn Left", "Turn Right", "Go Straight", "Stop here"],
+    correctRoute: [
+      "Continue Straight to the intersection.",
+      "Turn Left.",
+      "Continue Straight past the Supermarket, the Convenience Store, and the Cafe.",
+      "Turn Right.",
+      "Continue Straight.",
+      "Arrive at your destination, the School."
+    ],
+    routeFlow: routeFlowPalette,
     frame: 0,
     x: 1408,
     y: 576,
@@ -55,253 +120,63 @@ export const NPC_DEFINITIONS: NpcDefinition[] = [
     successDialogueText: "Thank you!!",
     successDialogueTextSpeedMs: 40,
     successAutoCloseDelayMs: 1400,
+    failureDialogueText: "Thanks to you I will never arrive",
+    failureDialogueTextSpeedMs: 40,
     routeOptions: ["Go to the bus stop", "Walk past the store", "Turn right", "Enter the school"],
     correctRoute: ["Walk past the store", "Turn right", "Go to the bus stop"],
-    routeFlow: {
-      panelHeight: 332,
-      stages: [
-        {
-          kind: "arrange",
-          prompt: "Stage 1: build the sentence.",
-          tokens: [
-            { id: "o1-s1-1", label: "Continue" },
-            { id: "o1-s1-2", label: "Straight" },
-            { id: "o1-s1-3", label: "to" },
-            { id: "o1-s1-4", label: "the" },
-            { id: "o1-s1-5", label: "road" },
-            { id: "o1-s1-6", label: "on" },
-            { id: "o1-s1-7", label: "the" },
-            { id: "o1-s1-8", label: "right." }
-          ],
-          answerTokenIds: [
-            "o1-s1-1",
-            "o1-s1-2",
-            "o1-s1-3",
-            "o1-s1-4",
-            "o1-s1-5",
-            "o1-s1-6",
-            "o1-s1-7",
-            "o1-s1-8"
-          ],
-          actionLabel: "Continue",
-          palette: {
-            panel: "#101827",
-            prompt: "#cfe3ff",
-            helper: "#d6dde7",
-            tokenIdleBg: "#1e293b",
-            tokenSelectedBg: "#2563eb",
-            tokenText: "#ffffff",
-            tokenBorder: "#5b8def",
-            phraseBg: "#0b1220",
-            phraseBorder: "#64748b",
-            actionIdleBg: "#1d4ed8",
-            actionReadyBg: "#16a34a",
-            actionText: "#ffffff",
-            choiceIdleBg: "#1f2937",
-            choiceSelectedBg: "#2563eb",
-            choiceCorrectBg: "#16a34a",
-            choiceWrongBg: "#b91c1c",
-            resetBg: "#6b7280",
-            resetText: "#ffffff"
-          }
-        },
-        {
-          kind: "choice",
-          prompt: "Stage 2: choose the next turn.",
-          choices: [
-            { id: "o1-c1", label: "Turn Right", correct: false },
-            { id: "o1-c2", label: "Turn Left", correct: true },
-            { id: "o1-c3", label: "Go Back", correct: false },
-            { id: "o1-c4", label: "Stop here", correct: false }
-          ],
-          actionLabel: "Continue",
-          palette: {
-            panel: "#101827",
-            prompt: "#cfe3ff",
-            helper: "#d6dde7",
-            tokenIdleBg: "#1e293b",
-            tokenSelectedBg: "#2563eb",
-            tokenText: "#ffffff",
-            tokenBorder: "#5b8def",
-            phraseBg: "#0b1220",
-            phraseBorder: "#64748b",
-            actionIdleBg: "#1d4ed8",
-            actionReadyBg: "#16a34a",
-            actionText: "#ffffff",
-            choiceIdleBg: "#1f2937",
-            choiceSelectedBg: "#2563eb",
-            choiceCorrectBg: "#16a34a",
-            choiceWrongBg: "#b91c1c",
-            resetBg: "#6b7280",
-            resetText: "#ffffff"
-          }
-        },
-        {
-          kind: "arrange",
-          prompt: "Stage 3: build the sentence.",
-          tokens: [
-            { id: "o1-s3-1", label: "Continue" },
-            { id: "o1-s3-2", label: "Straight" },
-            { id: "o1-s3-3", label: "until" },
-            { id: "o1-s3-4", label: "you" },
-            { id: "o1-s3-5", label: "reach" },
-            { id: "o1-s3-6", label: "the" },
-            { id: "o1-s3-7", label: "top" },
-            { id: "o1-s3-8", label: "road." }
-          ],
-          answerTokenIds: [
-            "o1-s3-1",
-            "o1-s3-2",
-            "o1-s3-3",
-            "o1-s3-4",
-            "o1-s3-5",
-            "o1-s3-6",
-            "o1-s3-7",
-            "o1-s3-8"
-          ],
-          actionLabel: "Indicate",
-          palette: {
-            panel: "#101827",
-            prompt: "#cfe3ff",
-            helper: "#d6dde7",
-            tokenIdleBg: "#1e293b",
-            tokenSelectedBg: "#2563eb",
-            tokenText: "#ffffff",
-            tokenBorder: "#5b8def",
-            phraseBg: "#0b1220",
-            phraseBorder: "#64748b",
-            actionIdleBg: "#1d4ed8",
-            actionReadyBg: "#16a34a",
-            actionText: "#ffffff",
-            choiceIdleBg: "#1f2937",
-            choiceSelectedBg: "#2563eb",
-            choiceCorrectBg: "#16a34a",
-            choiceWrongBg: "#b91c1c",
-            resetBg: "#6b7280",
-            resetText: "#ffffff"
-          }
-        },
-        {
-          kind: "choice",
-          prompt: "Stage 4: choose the next turn.",
-          choices: [
-            { id: "o1-c5", label: "Turn Left", correct: false },
-            { id: "o1-c6", label: "Turn Right", correct: true },
-            { id: "o1-c7", label: "Go Straight", correct: false },
-            { id: "o1-c8", label: "Stop here", correct: false }
-          ],
-          actionLabel: "Continue",
-          palette: {
-            panel: "#101827",
-            prompt: "#cfe3ff",
-            helper: "#d6dde7",
-            tokenIdleBg: "#1e293b",
-            tokenSelectedBg: "#2563eb",
-            tokenText: "#ffffff",
-            tokenBorder: "#5b8def",
-            phraseBg: "#0b1220",
-            phraseBorder: "#64748b",
-            actionIdleBg: "#1d4ed8",
-            actionReadyBg: "#16a34a",
-            actionText: "#ffffff",
-            choiceIdleBg: "#1f2937",
-            choiceSelectedBg: "#2563eb",
-            choiceCorrectBg: "#16a34a",
-            choiceWrongBg: "#b91c1c",
-            resetBg: "#6b7280",
-            resetText: "#ffffff"
-          }
-        },
-        {
-          kind: "arrange",
-          prompt: "Stage 5: build the sentence.",
-          tokens: [
-            { id: "o1-s5-1", label: "Continue" },
-            { id: "o1-s5-2", label: "Straight" },
-            { id: "o1-s5-3", label: "past" },
-            { id: "o1-s5-4", label: "the" },
-            { id: "o1-s5-5", label: "Bank" },
-            { id: "o1-s5-6", label: "and" },
-            { id: "o1-s5-7", label: "the" },
-            { id: "o1-s5-8", label: "Police" },
-            { id: "o1-s5-9", label: "Station." }
-          ],
-          answerTokenIds: [
-            "o1-s5-1",
-            "o1-s5-2",
-            "o1-s5-3",
-            "o1-s5-4",
-            "o1-s5-5",
-            "o1-s5-6",
-            "o1-s5-7",
-            "o1-s5-8",
-            "o1-s5-9"
-          ],
-          actionLabel: "Continue",
-          palette: {
-            panel: "#101827",
-            prompt: "#cfe3ff",
-            helper: "#d6dde7",
-            tokenIdleBg: "#1e293b",
-            tokenSelectedBg: "#2563eb",
-            tokenText: "#ffffff",
-            tokenBorder: "#5b8def",
-            phraseBg: "#0b1220",
-            phraseBorder: "#64748b",
-            actionIdleBg: "#1d4ed8",
-            actionReadyBg: "#16a34a",
-            actionText: "#ffffff",
-            choiceIdleBg: "#1f2937",
-            choiceSelectedBg: "#2563eb",
-            choiceCorrectBg: "#16a34a",
-            choiceWrongBg: "#b91c1c",
-            resetBg: "#6b7280",
-            resetText: "#ffffff"
-          }
-        },
-        {
-          kind: "arrange",
-          prompt: "Stage 6: arrive at the destination.",
-          tokens: [
-            { id: "o1-s6-1", label: "Arrive" },
-            { id: "o1-s6-2", label: "at" },
-            { id: "o1-s6-3", label: "your" },
-            { id: "o1-s6-4", label: "destination," },
-            { id: "o1-s6-5", label: "the" },
-            { id: "o1-s6-6", label: "Library." }
-          ],
-          answerTokenIds: [
-            "o1-s6-1",
-            "o1-s6-2",
-            "o1-s6-3",
-            "o1-s6-4",
-            "o1-s6-5",
-            "o1-s6-6"
-          ],
-          actionLabel: "Indicate",
-          palette: {
-            panel: "#101827",
-            prompt: "#cfe3ff",
-            helper: "#d6dde7",
-            tokenIdleBg: "#1e293b",
-            tokenSelectedBg: "#2563eb",
-            tokenText: "#ffffff",
-            tokenBorder: "#5b8def",
-            phraseBg: "#0b1220",
-            phraseBorder: "#64748b",
-            actionIdleBg: "#1d4ed8",
-            actionReadyBg: "#16a34a",
-            actionText: "#ffffff",
-            choiceIdleBg: "#1f2937",
-            choiceSelectedBg: "#2563eb",
-            choiceCorrectBg: "#16a34a",
-            choiceWrongBg: "#b91c1c",
-            resetBg: "#6b7280",
-            resetText: "#ffffff"
-          }
-        }
-      ]
-    },
+    routeFlow: createRouteFlow(332, [
+      createArrangeStage("o1-s1", "Stage 1: build the sentence.", [
+        "Continue",
+        "Straight",
+        "to",
+        "the",
+        "road",
+        "on",
+        "the",
+        "right."
+      ]),
+      createChoiceStage("o1-s2", "Stage 2: choose the next turn.", [
+        { label: "Turn Right", correct: false },
+        { label: "Turn Left", correct: true },
+        { label: "Go Back", correct: false },
+        { label: "Stop here", correct: false }
+      ]),
+      createArrangeStage("o1-s3", "Stage 3: build the sentence.", [
+        "Continue",
+        "Straight",
+        "until",
+        "you",
+        "reach",
+        "the",
+        "top",
+        "road."
+      ]),
+      createChoiceStage("o1-s4", "Stage 4: choose the next turn.", [
+        { label: "Turn Left", correct: false },
+        { label: "Turn Right", correct: true },
+        { label: "Go Straight", correct: false },
+        { label: "Stop here", correct: false }
+      ]),
+      createArrangeStage("o1-s5", "Stage 5: build the sentence.", [
+        "Continue",
+        "Straight",
+        "past",
+        "the",
+        "Bank",
+        "and",
+        "the",
+        "Police",
+        "Station."
+      ]),
+      createArrangeStage("o1-s6", "Stage 6: arrive at the destination.", [
+        "Arrive",
+        "at",
+        "your",
+        "destination,",
+        "the",
+        "Library."
+      ], "Indicate")
+    ]),
     frame: 0,
     x: 480,
     y: 480,
