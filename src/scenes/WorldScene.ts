@@ -6,16 +6,20 @@ type WorldSceneData = {
   spawnY?: number;
 };
 
+type NpcIndicatorState = "alert" | "thinking";
+
 export class WorldScene extends BaseRpgScene {
   private spawnX = this.tileToWorld(28, 1);
   private spawnY = this.tileToWorld(15, 1);
   private worldWidth = 0;
   private worldHeight = 0;
   private girlNpc!: Phaser.Physics.Arcade.Sprite;
+  private activeNpc: Phaser.Physics.Arcade.Sprite | null = null;
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private qKey!: Phaser.Input.Keyboard.Key;
   private dialogOpen = false;
   private dialogElements: Array<Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text> = [];
+  private npcIndicators: Array<{ npc: Phaser.Physics.Arcade.Sprite; indicator: Phaser.GameObjects.Text }> = [];
   private readonly talkDistance = 120;
   private readonly dialogueBarHeight = 212;
 
@@ -53,6 +57,7 @@ export class WorldScene extends BaseRpgScene {
     this.physics.add.collider(this.player, this.girlNpc);
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.registerNpcIndicator(this.girlNpc);
     this.updateCameraMode(this.scale.width, this.scale.height);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -74,10 +79,12 @@ export class WorldScene extends BaseRpgScene {
 
       this.player.setDepth(this.player.y);
       this.girlNpc.setDepth(this.girlNpc.y);
+      this.updateNpcIndicators();
       return;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.isNearGirlNpc()) {
+      this.activeNpc = this.girlNpc;
       this.openDialog();
       return;
     }
@@ -87,6 +94,7 @@ export class WorldScene extends BaseRpgScene {
     if (this.girlNpc) {
       this.girlNpc.setDepth(this.girlNpc.y);
     }
+    this.updateNpcIndicators();
   }
 
   private createGirlNpc(x: number, y: number) {
@@ -123,8 +131,39 @@ export class WorldScene extends BaseRpgScene {
     }
 
     this.dialogOpen = false;
+    this.activeNpc = null;
+    this.updateNpcIndicators();
     this.dialogElements.forEach(element => element.destroy());
     this.dialogElements = [];
+  }
+
+  private registerNpcIndicator(npc: Phaser.Physics.Arcade.Sprite) {
+    const indicator = this.add
+      .text(npc.x, npc.y, "❗", {
+        fontFamily: "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif",
+        fontSize: "28px",
+        color: "#ffffff"
+      })
+      .setOrigin(0.5, 1);
+
+    this.npcIndicators.push({ npc, indicator });
+    this.updateNpcIndicatorState(npc, indicator);
+  }
+
+  private updateNpcIndicators() {
+    for (const { npc, indicator } of this.npcIndicators) {
+      indicator.setPosition(npc.x, npc.y - npc.displayHeight / 2 - 6);
+      indicator.setDepth(npc.y + 10);
+      this.updateNpcIndicatorState(npc, indicator);
+    }
+  }
+
+  private updateNpcIndicatorState(
+    npc: Phaser.Physics.Arcade.Sprite,
+    indicator: Phaser.GameObjects.Text
+  ) {
+    const state: NpcIndicatorState = this.dialogOpen && this.activeNpc === npc ? "thinking" : "alert";
+    indicator.setText(state === "thinking" ? "🤔" : "❗");
   }
 
   private buildDialogUi() {
