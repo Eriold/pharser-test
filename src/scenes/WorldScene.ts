@@ -320,6 +320,8 @@ export class WorldScene extends BaseRpgScene {
       return;
     }
 
+    this.cameras.resize(viewWidth, viewHeight);
+
     const worldFits = viewWidth >= this.worldWidth && viewHeight >= this.worldHeight;
 
     if (worldFits) {
