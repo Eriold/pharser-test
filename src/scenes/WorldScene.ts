@@ -8,10 +8,27 @@ type WorldSceneData = {
 
 type NpcIndicatorState = "alert" | "thinking";
 
-type NpcIndicator = {
-  npc: Phaser.Physics.Arcade.Sprite;
-  box: Phaser.GameObjects.Rectangle;
-  label: Phaser.GameObjects.Text;
+type NpcDefinition = {
+  id: string;
+  name: string;
+  spriteKey: string;
+  portraitKey: string;
+  frame?: number;
+  x: number;
+  y: number;
+  displayWidth: number;
+  displayHeight: number;
+  bodyWidth: number;
+  bodyHeight: number;
+  bodyOffsetX: number;
+  bodyOffsetY: number;
+};
+
+type NpcEntry = {
+  definition: NpcDefinition;
+  sprite: Phaser.Physics.Arcade.Sprite;
+  indicatorBox: Phaser.GameObjects.Rectangle;
+  indicatorLabel: Phaser.GameObjects.Text;
 };
 
 export class WorldScene extends BaseRpgScene {
@@ -19,15 +36,48 @@ export class WorldScene extends BaseRpgScene {
   private spawnY = this.tileToWorld(15, 1);
   private worldWidth = 0;
   private worldHeight = 0;
-  private girlNpc!: Phaser.Physics.Arcade.Sprite;
-  private activeNpc: Phaser.Physics.Arcade.Sprite | null = null;
+  private activeNpcId: string | null = null;
+  private activeNpcPortraitKey = "";
+  private activeNpcName = "";
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private qKey!: Phaser.Input.Keyboard.Key;
   private dialogOpen = false;
   private dialogElements: Array<Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text> = [];
-  private npcIndicators: NpcIndicator[] = [];
+  private npcs: NpcEntry[] = [];
   private readonly talkDistance = 120;
   private readonly dialogueBarHeight = 212;
+  private readonly npcDefinitions: NpcDefinition[] = [
+    {
+      id: "g1",
+      name: "Sara",
+      spriteKey: "girl-npc",
+      portraitKey: "girl-npc-character",
+      frame: 0,
+      x: 1408,
+      y: 576,
+      displayWidth: 70,
+      displayHeight: 79,
+      bodyWidth: 36,
+      bodyHeight: 20,
+      bodyOffsetX: 30,
+      bodyOffsetY: 84
+    },
+    {
+      id: "o1",
+      name: "Old man",
+      spriteKey: "old-npc",
+      portraitKey: "old-npc-character",
+      frame: 0,
+      x: 480,
+      y: 480,
+      displayWidth: 70,
+      displayHeight: 79,
+      bodyWidth: 36,
+      bodyHeight: 20,
+      bodyOffsetX: 30,
+      bodyOffsetY: 84
+    }
+  ];
 
   constructor() {
     super("WorldScene");
@@ -48,6 +98,12 @@ export class WorldScene extends BaseRpgScene {
       frameHeight: 108
     });
     this.load.image("girl-npc-character", "/assets/character-g1-npc.png");
+    this.load.spritesheet("old-npc", "/assets/sprites/o1-npc-png.png", {
+      frameWidth: 167,
+      frameHeight: 167,
+      spacing: 1
+    });
+    this.load.image("old-npc-character", "/assets/character-o1-npc.png");
   }
 
   create() {
@@ -57,13 +113,17 @@ export class WorldScene extends BaseRpgScene {
     this.worldWidth = map.widthInPixels;
     this.worldHeight = map.heightInPixels;
     this.createPlayer(this.spawnX, this.spawnY);
-    this.createGirlNpc(1408, 576);
+
+    for (const definition of this.npcDefinitions) {
+      const entry = this.createNpc(definition);
+      this.npcs.push(entry);
+      this.physics.add.collider(this.player, entry.sprite);
+    }
 
     this.physics.add.collider(this.player, collision);
-    this.physics.add.collider(this.player, this.girlNpc);
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.qKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
-    this.registerNpcIndicator(this.girlNpc);
+    this.updateNpcIndicators();
     this.updateCameraMode(this.scale.width, this.scale.height);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -84,42 +144,75 @@ export class WorldScene extends BaseRpgScene {
       }
 
       this.player.setDepth(this.player.y);
-      this.girlNpc.setDepth(this.girlNpc.y);
+      this.updateNpcDepths();
       this.updateNpcIndicators();
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.isNearGirlNpc()) {
-      this.activeNpc = this.girlNpc;
-      this.openDialog();
-      return;
+    if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+      const nearbyNpc = this.findNearbyNpc();
+      if (nearbyNpc) {
+        this.activeNpcId = nearbyNpc.definition.id;
+        this.activeNpcPortraitKey = nearbyNpc.definition.portraitKey;
+        this.activeNpcName = nearbyNpc.definition.name;
+        this.openDialog();
+        return;
+      }
     }
 
     this.movePlayer();
     this.player.setDepth(this.player.y);
-    if (this.girlNpc) {
-      this.girlNpc.setDepth(this.girlNpc.y);
-    }
+    this.updateNpcDepths();
     this.updateNpcIndicators();
   }
 
-  private createGirlNpc(x: number, y: number) {
-    this.girlNpc = this.physics.add.sprite(x, y, "girl-npc", 0);
-    this.girlNpc.setDisplaySize(70, 79);
-    this.girlNpc.setSize(36, 20);
-    this.girlNpc.setOffset(30, 84);
-    this.girlNpc.setImmovable(true);
-    const body = this.girlNpc.body as Phaser.Physics.Arcade.Body;
+  private createNpc(definition: NpcDefinition) {
+    const sprite = this.physics.add.sprite(
+      definition.x,
+      definition.y,
+      definition.spriteKey,
+      definition.frame ?? 0
+    );
+    sprite.setDisplaySize(definition.displayWidth, definition.displayHeight);
+    sprite.setSize(definition.bodyWidth, definition.bodyHeight);
+    sprite.setOffset(definition.bodyOffsetX, definition.bodyOffsetY);
+    sprite.setImmovable(true);
+    const body = sprite.body as Phaser.Physics.Arcade.Body;
     body.allowGravity = false;
-    this.girlNpc.setFrame(0);
-    this.girlNpc.setDepth(y);
+    sprite.setDepth(definition.y);
+
+    const indicatorBox = this.add.rectangle(definition.x, definition.y, 56, 50, 0xffffff, 1);
+    indicatorBox.setStrokeStyle(3, 0x111111, 0.92);
+    const indicatorLabel = this.add
+      .text(definition.x, definition.y, "\u2757", {
+        fontFamily: "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif",
+        fontSize: "34px",
+        fontStyle: "bold",
+        color: "#111111"
+      })
+      .setOrigin(0.5);
+
+    return {
+      definition,
+      sprite,
+      indicatorBox,
+      indicatorLabel
+    };
   }
 
-  private isNearGirlNpc() {
-    return (
-      Phaser.Math.Distance.Between(this.player.x, this.player.y, this.girlNpc.x, this.girlNpc.y) <=
-      this.talkDistance
-    );
+  private findNearbyNpc() {
+    let nearest: NpcEntry | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const entry of this.npcs) {
+      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, entry.sprite.x, entry.sprite.y);
+      if (distance <= this.talkDistance && distance < nearestDistance) {
+        nearest = entry;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
   }
 
   private openDialog() {
@@ -137,48 +230,35 @@ export class WorldScene extends BaseRpgScene {
     }
 
     this.dialogOpen = false;
-    this.activeNpc = null;
+    this.activeNpcId = null;
+    this.activeNpcPortraitKey = "";
+    this.activeNpcName = "";
     this.updateNpcIndicators();
     this.dialogElements.forEach(element => element.destroy());
     this.dialogElements = [];
   }
 
-  private registerNpcIndicator(npc: Phaser.Physics.Arcade.Sprite) {
-    const indicatorWidth = 56;
-    const indicatorHeight = 50;
-    const box = this.add.rectangle(npc.x, npc.y, indicatorWidth, indicatorHeight, 0xffffff, 1);
-    box.setStrokeStyle(3, 0x111111, 0.92);
-
-    const label = this.add
-      .text(npc.x, npc.y, "\u2757", {
-        fontFamily: "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif",
-        fontSize: "34px",
-        fontStyle: "bold",
-        color: "#111111"
-      })
-      .setOrigin(0.5);
-
-    this.npcIndicators.push({ npc, box, label });
-    this.updateNpcIndicatorState(npc, label);
-  }
-
-  private updateNpcIndicators() {
-    for (const { npc, box, label } of this.npcIndicators) {
-      const indicatorY = npc.y - npc.displayHeight / 2 - 28;
-      box.setPosition(npc.x, indicatorY);
-      label.setPosition(npc.x, indicatorY + 1);
-      box.setDepth(npc.y + 10);
-      label.setDepth(npc.y + 11);
-      this.updateNpcIndicatorState(npc, label);
+  private updateNpcDepths() {
+    for (const entry of this.npcs) {
+      entry.sprite.setDepth(entry.sprite.y);
     }
   }
 
-  private updateNpcIndicatorState(
-    npc: Phaser.Physics.Arcade.Sprite,
-    indicator: Phaser.GameObjects.Text
-  ) {
-    const state: NpcIndicatorState = this.dialogOpen && this.activeNpc === npc ? "thinking" : "alert";
-    indicator.setText(state === "thinking" ? "\u{1F914}" : "\u2757");
+  private updateNpcIndicators() {
+    for (const entry of this.npcs) {
+      const indicatorY = entry.sprite.y - entry.sprite.displayHeight / 2 - 28;
+      entry.indicatorBox.setPosition(entry.sprite.x, indicatorY);
+      entry.indicatorLabel.setPosition(entry.sprite.x, indicatorY + 1);
+      entry.indicatorBox.setDepth(entry.sprite.y + 10);
+      entry.indicatorLabel.setDepth(entry.sprite.y + 11);
+      this.updateNpcIndicatorState(entry);
+    }
+  }
+
+  private updateNpcIndicatorState(entry: NpcEntry) {
+    const state: NpcIndicatorState =
+      this.dialogOpen && this.activeNpcId === entry.definition.id ? "thinking" : "alert";
+    entry.indicatorLabel.setText(state === "thinking" ? "\u{1F914}" : "\u2757");
   }
 
   private buildDialogUi() {
@@ -186,19 +266,17 @@ export class WorldScene extends BaseRpgScene {
     const height = this.scale.height;
     const barY = height - this.dialogueBarHeight;
     const bar = this.add.rectangle(0, barY, width, this.dialogueBarHeight, 0x160f14, 0.95).setOrigin(0);
-    const barLine = this.add
-      .rectangle(0, barY, width, 4, 0xffffff, 0.16)
-      .setOrigin(0);
+    const barLine = this.add.rectangle(0, barY, width, 4, 0xffffff, 0.16).setOrigin(0);
 
     const portraitX = width - 250;
     const portraitY = barY;
-    const portrait = this.add.image(portraitX, portraitY, "girl-npc-character");
+    const portrait = this.add.image(portraitX, portraitY, this.activeNpcPortraitKey);
     portrait.setDisplaySize(400, 600);
 
     const portraitFrame = this.add.rectangle(portraitX, portraitY, 206, 206, 0x000000, 0);
 
     const title = this.add
-      .text(264, barY + 24, "Sara is lost", {
+      .text(264, barY + 24, `${this.activeNpcName} is lost`, {
         fontFamily: "monospace",
         fontSize: "26px",
         fontStyle: "bold",
