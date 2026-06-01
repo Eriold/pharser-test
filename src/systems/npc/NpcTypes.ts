@@ -53,7 +53,7 @@ export type NpcDefinition = {
 
 export type NpcEntry = {
   definition: NpcDefinition;
-  sprite: Phaser.Physics.Arcade.Sprite;
+  sprite: Phaser.GameObjects.Sprite;
   indicatorBox: Phaser.GameObjects.Rectangle;
   indicatorLabel: Phaser.GameObjects.Text;
   resultState: NpcResultState;

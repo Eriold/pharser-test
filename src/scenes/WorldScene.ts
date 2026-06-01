@@ -68,7 +68,6 @@ export class WorldScene extends BaseRpgScene {
     for (const definition of this.npcDefinitions) {
       const entry = this.createNpc(definition, collision);
       this.npcs.push(entry);
-      this.physics.add.collider(this.player, entry.sprite);
     }
 
     this.physics.add.collider(this.player, collision);
@@ -142,18 +141,13 @@ export class WorldScene extends BaseRpgScene {
       )
       : { x: definition.x, y: definition.y };
 
-    const sprite = this.physics.add.sprite(
+    const sprite = this.add.sprite(
       spawn.x,
       spawn.y,
       definition.sprite.key,
       definition.frame ?? 0
     );
     sprite.setDisplaySize(definition.displayWidth, definition.displayHeight);
-    sprite.setSize(definition.bodyWidth, definition.bodyHeight);
-    sprite.setOffset(definition.bodyOffsetX, definition.bodyOffsetY);
-    sprite.setImmovable(true);
-    const body = sprite.body as Phaser.Physics.Arcade.Body;
-    body.allowGravity = false;
     sprite.setDepth(spawn.y);
 
     const indicatorBox = this.add.rectangle(spawn.x, spawn.y, 56, 50, 0xffffff, 1);
