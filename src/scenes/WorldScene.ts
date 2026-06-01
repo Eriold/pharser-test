@@ -8,6 +8,12 @@ type WorldSceneData = {
 
 type NpcIndicatorState = "alert" | "thinking";
 
+type NpcIndicator = {
+  npc: Phaser.Physics.Arcade.Sprite;
+  box: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
+};
+
 export class WorldScene extends BaseRpgScene {
   private spawnX = this.tileToWorld(28, 1);
   private spawnY = this.tileToWorld(15, 1);
@@ -19,7 +25,7 @@ export class WorldScene extends BaseRpgScene {
   private qKey!: Phaser.Input.Keyboard.Key;
   private dialogOpen = false;
   private dialogElements: Array<Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text> = [];
-  private npcIndicators: Array<{ npc: Phaser.Physics.Arcade.Sprite; indicator: Phaser.GameObjects.Text }> = [];
+  private npcIndicators: NpcIndicator[] = [];
   private readonly talkDistance = 120;
   private readonly dialogueBarHeight = 212;
 
@@ -138,23 +144,32 @@ export class WorldScene extends BaseRpgScene {
   }
 
   private registerNpcIndicator(npc: Phaser.Physics.Arcade.Sprite) {
-    const indicator = this.add
-      .text(npc.x, npc.y, "❗", {
-        fontFamily: "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif",
-        fontSize: "28px",
-        color: "#ffffff"
-      })
-      .setOrigin(0.5, 1);
+    const indicatorWidth = 56;
+    const indicatorHeight = 50;
+    const box = this.add.rectangle(npc.x, npc.y, indicatorWidth, indicatorHeight, 0xffffff, 1);
+    box.setStrokeStyle(3, 0x111111, 0.92);
 
-    this.npcIndicators.push({ npc, indicator });
-    this.updateNpcIndicatorState(npc, indicator);
+    const label = this.add
+      .text(npc.x, npc.y, "\u2757", {
+        fontFamily: "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif",
+        fontSize: "34px",
+        fontStyle: "bold",
+        color: "#111111"
+      })
+      .setOrigin(0.5);
+
+    this.npcIndicators.push({ npc, box, label });
+    this.updateNpcIndicatorState(npc, label);
   }
 
   private updateNpcIndicators() {
-    for (const { npc, indicator } of this.npcIndicators) {
-      indicator.setPosition(npc.x, npc.y - npc.displayHeight / 2 - 6);
-      indicator.setDepth(npc.y + 10);
-      this.updateNpcIndicatorState(npc, indicator);
+    for (const { npc, box, label } of this.npcIndicators) {
+      const indicatorY = npc.y - npc.displayHeight / 2 - 28;
+      box.setPosition(npc.x, indicatorY);
+      label.setPosition(npc.x, indicatorY + 1);
+      box.setDepth(npc.y + 10);
+      label.setDepth(npc.y + 11);
+      this.updateNpcIndicatorState(npc, label);
     }
   }
 
@@ -163,7 +178,7 @@ export class WorldScene extends BaseRpgScene {
     indicator: Phaser.GameObjects.Text
   ) {
     const state: NpcIndicatorState = this.dialogOpen && this.activeNpc === npc ? "thinking" : "alert";
-    indicator.setText(state === "thinking" ? "🤔" : "❗");
+    indicator.setText(state === "thinking" ? "\u{1F914}" : "\u2757");
   }
 
   private buildDialogUi() {
@@ -187,7 +202,6 @@ export class WorldScene extends BaseRpgScene {
         fontFamily: "monospace",
         fontSize: "26px",
         fontStyle: "bold",
-        // color: "#ffffff"
         color: "#cdf8c2"
       })
       .setOrigin(0);
