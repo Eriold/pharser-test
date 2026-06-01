@@ -7,12 +7,13 @@ export abstract class BaseRpgScene extends Phaser.Scene {
   protected cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   protected wasd!: Record<string, Phaser.Input.Keyboard.Key>;
   protected speed = 150;
+  protected lastDirection: Direction = "down";
   protected readonly tileSize = 32;
   protected readonly mapScale = 2;
 
   preload() {
     this.load.image("tiles", "/assets/tilesets/minimal-rpg-tileset.png");
-    this.load.spritesheet("player", "/assets/sprites/prota-sprite.png", {
+    this.load.spritesheet("player", "/assets/sprites/prota-g-sprite.png", {
       frameWidth: 96,
       frameHeight: 108
     });
@@ -55,6 +56,7 @@ export abstract class BaseRpgScene extends Phaser.Scene {
   }
 
   protected setPlayerIdle(direction: Direction) {
+    this.lastDirection = direction;
     const idleFrames: Record<Direction, number> = {
       down: 0,
       up: 6,
@@ -114,27 +116,20 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     const up = this.cursors.up.isDown || this.wasd.W.isDown;
     const down = this.cursors.down.isDown || this.wasd.S.isDown;
 
-    if (left) {
-      body.setVelocityX(-this.speed);
-      dir = "left";
-    } else if (right) {
-      body.setVelocityX(this.speed);
-      dir = "right";
-    }
-
-    if (up) {
-      body.setVelocityY(-this.speed);
-      dir = "up";
-    } else if (down) {
-      body.setVelocityY(this.speed);
-      dir = "down";
+    if (left || right) {
+      body.setVelocityX(left ? -this.speed : this.speed);
+      dir = left ? "left" : "right";
+    } else if (up || down) {
+      body.setVelocityY(up ? -this.speed : this.speed);
+      dir = up ? "up" : "down";
     }
 
     if (left || right || up || down) {
-      body.velocity.normalize().scale(this.speed);
+      this.lastDirection = dir;
       this.player.anims.play(`walk-${dir}`, true);
     } else {
       this.player.anims.stop();
+      this.setPlayerIdle(this.lastDirection);
     }
   }
 

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { NPC_DEFINITIONS } from "../data/npcs";
 import { NpcDialogueTypewriter } from "../systems/npc/NpcDialogueTypewriter";
+import { findRandomOpenNpcPosition } from "../systems/npc/NpcSpawn";
 import type { NpcDefinition, NpcEntry, NpcResultState } from "../systems/npc/NpcTypes";
 import { NpcRouteFlow } from "../systems/npc/NpcRouteFlow";
 import { BaseRpgScene } from "./BaseRpgScene";
@@ -65,7 +66,7 @@ export class WorldScene extends BaseRpgScene {
     this.createPlayer(this.spawnX, this.spawnY);
 
     for (const definition of this.npcDefinitions) {
-      const entry = this.createNpc(definition);
+      const entry = this.createNpc(definition, collision);
       this.npcs.push(entry);
       this.physics.add.collider(this.player, entry.sprite);
     }
@@ -128,10 +129,22 @@ export class WorldScene extends BaseRpgScene {
     this.updateNpcIndicators();
   }
 
-  private createNpc(definition: NpcDefinition): NpcEntry {
+  private createNpc(definition: NpcDefinition, collision: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer): NpcEntry {
+    const spawn = definition.spawnRandomly
+      ? findRandomOpenNpcPosition(
+        collision,
+        this.worldWidth,
+        this.worldHeight,
+        this.tileSize,
+        this.spawnX,
+        this.spawnY,
+        this.npcs.map(entry => ({ x: entry.sprite.x, y: entry.sprite.y }))
+      )
+      : { x: definition.x, y: definition.y };
+
     const sprite = this.physics.add.sprite(
-      definition.x,
-      definition.y,
+      spawn.x,
+      spawn.y,
       definition.sprite.key,
       definition.frame ?? 0
     );
@@ -141,12 +154,12 @@ export class WorldScene extends BaseRpgScene {
     sprite.setImmovable(true);
     const body = sprite.body as Phaser.Physics.Arcade.Body;
     body.allowGravity = false;
-    sprite.setDepth(definition.y);
+    sprite.setDepth(spawn.y);
 
-    const indicatorBox = this.add.rectangle(definition.x, definition.y, 56, 50, 0xffffff, 1);
+    const indicatorBox = this.add.rectangle(spawn.x, spawn.y, 56, 50, 0xffffff, 1);
     indicatorBox.setStrokeStyle(3, 0x111111, 0.92);
     const indicatorLabel = this.add
-      .text(definition.x, definition.y, "\u2757", {
+      .text(spawn.x, spawn.y, "\u2757", {
         fontFamily: "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, sans-serif",
         fontSize: "34px",
         fontStyle: "bold",
@@ -278,6 +291,14 @@ export class WorldScene extends BaseRpgScene {
     const portraitX = width - 250;
     const portraitY = barY;
     const portrait = this.add.image(portraitX, portraitY, definition.portrait.key);
+    if (definition.portraitCrop) {
+      portrait.setCrop(
+        definition.portraitCrop.x,
+        definition.portraitCrop.y,
+        definition.portraitCrop.width,
+        definition.portraitCrop.height
+      );
+    }
     portrait.setDisplaySize(400, 600);
 
     const portraitFrame = this.add.rectangle(portraitX, portraitY, 206, 206, 0x000000, 0);

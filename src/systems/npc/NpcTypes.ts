@@ -19,6 +19,12 @@ export type NpcDefinition = {
     key: string;
     path: string;
   };
+  portraitCrop?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
   audio?: {
     key: string;
     path: string;
@@ -36,6 +42,7 @@ export type NpcDefinition = {
   frame?: number;
   x: number;
   y: number;
+  spawnRandomly?: boolean;
   displayWidth: number;
   displayHeight: number;
   bodyWidth: number;
