@@ -1,4 +1,5 @@
 import type { NpcDefinition } from "../systems/npc/NpcTypes";
+import { ALL_SPRITES_CHARACTER_NPCS } from "./allSpritesCharacterNpcs";
 import { createArrangeStage, createChoiceStage, createRouteFlow } from "./npcRoutePresets";
 
 const defaultNpcBody = {
@@ -104,6 +105,7 @@ const b1RouteFlow = createRouteFlow(332, [
 ]);
 
 export const NPC_DEFINITIONS: NpcDefinition[] = [
+  ...ALL_SPRITES_CHARACTER_NPCS,
   {
     id: "b1",
     name: "Miguel",

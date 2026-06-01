@@ -43,16 +43,27 @@ export class WorldScene extends BaseRpgScene {
     this.load.tilemapTiledJSON("world-complete-map", "/assets/maps/world-complete.map.json");
     this.load.image("world-complete", "/assets/maps/world-complete.png");
     this.load.image("collision-grid", "/assets/tilesets/collision-grid.png");
+    const seenSpriteKeys = new Set<string>();
+    const seenPortraitKeys = new Set<string>();
+    const seenAudioKeys = new Set<string>();
     for (const definition of this.npcDefinitions) {
-      this.load.spritesheet(definition.sprite.key, definition.sprite.path, {
-        frameWidth: definition.sprite.frameWidth,
-        frameHeight: definition.sprite.frameHeight,
-        spacing: definition.sprite.spacing
-      });
-      this.load.image(definition.portrait.key, definition.portrait.path);
+      if (!seenSpriteKeys.has(definition.sprite.key)) {
+        this.load.spritesheet(definition.sprite.key, definition.sprite.path, {
+          frameWidth: definition.sprite.frameWidth,
+          frameHeight: definition.sprite.frameHeight,
+          spacing: definition.sprite.spacing
+        });
+        seenSpriteKeys.add(definition.sprite.key);
+      }
 
-      if (definition.audio) {
+      if (!seenPortraitKeys.has(definition.portrait.key)) {
+        this.load.image(definition.portrait.key, definition.portrait.path);
+        seenPortraitKeys.add(definition.portrait.key);
+      }
+
+      if (definition.audio && !seenAudioKeys.has(definition.audio.key)) {
         this.load.audio(definition.audio.key, definition.audio.path);
+        seenAudioKeys.add(definition.audio.key);
       }
     }
   }
