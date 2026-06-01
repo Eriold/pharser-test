@@ -7,12 +7,12 @@ new Phaser.Game({
   parent: "game",
   width: 1280,
   height: 720,
-  pixelArt: true,
-  antialias: false,
+  pixelArt: false,
+  antialias: true,
   backgroundColor: "#222",
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.NO_CENTER
   },
   physics: {
     default: "arcade",

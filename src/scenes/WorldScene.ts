@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import { BaseRpgScene } from "./BaseRpgScene";
 
 type WorldSceneData = {
@@ -8,6 +9,8 @@ type WorldSceneData = {
 export class WorldScene extends BaseRpgScene {
   private spawnX = this.tileToWorld(28, 1);
   private spawnY = this.tileToWorld(15, 1);
+  private worldWidth = 0;
+  private worldHeight = 0;
 
   constructor() {
     super("WorldScene");
@@ -28,11 +31,17 @@ export class WorldScene extends BaseRpgScene {
   create() {
     this.add.image(0, 0, "world-complete").setOrigin(0).setDepth(0);
 
-    const { collision } = this.buildCollisionMap("world-complete-map", "collision-grid");
+    const { map, collision } = this.buildCollisionMap("world-complete-map", "collision-grid");
+    this.worldWidth = map.widthInPixels;
+    this.worldHeight = map.heightInPixels;
     this.createPlayer(this.spawnX, this.spawnY);
 
     this.physics.add.collider(this.player, collision);
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    this.updateCameraMode(this.scale.width, this.scale.height);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    });
 
     this.addHint("Ciudad exterior: muevete con WASD/Flechas. El borde esta bloqueado.");
   }
@@ -40,5 +49,30 @@ export class WorldScene extends BaseRpgScene {
   update() {
     this.movePlayer();
     this.player.setDepth(this.player.y);
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size) {
+    this.updateCameraMode(gameSize.width, gameSize.height);
+  }
+
+  private updateCameraMode(viewWidth: number, viewHeight: number) {
+    if (this.worldWidth === 0 || this.worldHeight === 0) {
+      return;
+    }
+
+    const worldFits = viewWidth >= this.worldWidth && viewHeight >= this.worldHeight;
+
+    if (worldFits) {
+      const scrollX = -(viewWidth - this.worldWidth) / 2;
+      const scrollY = -(viewHeight - this.worldHeight) / 2;
+
+      this.cameras.main.stopFollow();
+      this.cameras.main.removeBounds();
+      this.cameras.main.setScroll(scrollX, scrollY);
+      return;
+    }
+
+    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
   }
 }
