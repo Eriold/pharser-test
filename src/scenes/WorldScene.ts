@@ -1,4 +1,8 @@
 import Phaser from "phaser";
+import { NPC_DEFINITIONS } from "../data/npcs";
+import { NpcDialogueTypewriter } from "../systems/npc/NpcDialogueTypewriter";
+import type { NpcDefinition, NpcEntry, NpcResultState } from "../systems/npc/NpcTypes";
+import { NpcRouteFlow } from "../systems/npc/NpcRouteFlow";
 import { BaseRpgScene } from "./BaseRpgScene";
 
 type WorldSceneData = {
@@ -6,78 +10,22 @@ type WorldSceneData = {
   spawnY?: number;
 };
 
-type NpcIndicatorState = "alert" | "thinking";
-
-type NpcDefinition = {
-  id: string;
-  name: string;
-  spriteKey: string;
-  portraitKey: string;
-  frame?: number;
-  x: number;
-  y: number;
-  displayWidth: number;
-  displayHeight: number;
-  bodyWidth: number;
-  bodyHeight: number;
-  bodyOffsetX: number;
-  bodyOffsetY: number;
-};
-
-type NpcEntry = {
-  definition: NpcDefinition;
-  sprite: Phaser.Physics.Arcade.Sprite;
-  indicatorBox: Phaser.GameObjects.Rectangle;
-  indicatorLabel: Phaser.GameObjects.Text;
-};
-
 export class WorldScene extends BaseRpgScene {
   private spawnX = this.tileToWorld(28, 1);
   private spawnY = this.tileToWorld(15, 1);
   private worldWidth = 0;
   private worldHeight = 0;
-  private activeNpcId: string | null = null;
-  private activeNpcPortraitKey = "";
-  private activeNpcName = "";
+  private activeNpc: NpcEntry | null = null;
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private qKey!: Phaser.Input.Keyboard.Key;
   private dialogOpen = false;
   private dialogElements: Array<Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle | Phaser.GameObjects.Text> = [];
   private npcs: NpcEntry[] = [];
+  private dialogueTypewriter = new NpcDialogueTypewriter();
+  private routeFlow: NpcRouteFlow | null = null;
   private readonly talkDistance = 120;
-  private readonly dialogueBarHeight = 212;
-  private readonly npcDefinitions: NpcDefinition[] = [
-    {
-      id: "g1",
-      name: "Sara",
-      spriteKey: "girl-npc",
-      portraitKey: "girl-npc-character",
-      frame: 0,
-      x: 1408,
-      y: 576,
-      displayWidth: 70,
-      displayHeight: 79,
-      bodyWidth: 36,
-      bodyHeight: 20,
-      bodyOffsetX: 30,
-      bodyOffsetY: 84
-    },
-    {
-      id: "o1",
-      name: "Old man",
-      spriteKey: "old-npc",
-      portraitKey: "old-npc-character",
-      frame: 0,
-      x: 480,
-      y: 480,
-      displayWidth: 70,
-      displayHeight: 79,
-      bodyWidth: 36,
-      bodyHeight: 20,
-      bodyOffsetX: 30,
-      bodyOffsetY: 84
-    }
-  ];
+  private dialogueBarHeight = 212;
+  private readonly npcDefinitions = NPC_DEFINITIONS;
 
   constructor() {
     super("WorldScene");
@@ -93,17 +41,18 @@ export class WorldScene extends BaseRpgScene {
     this.load.tilemapTiledJSON("world-complete-map", "/assets/maps/world-complete.map.json");
     this.load.image("world-complete", "/assets/maps/world-complete.png");
     this.load.image("collision-grid", "/assets/tilesets/collision-grid.png");
-    this.load.spritesheet("girl-npc", "/assets/sprites/g1-npc.png", {
-      frameWidth: 96,
-      frameHeight: 108
-    });
-    this.load.image("girl-npc-character", "/assets/character-g1-npc.png");
-    this.load.spritesheet("old-npc", "/assets/sprites/o1-npc-png.png", {
-      frameWidth: 167,
-      frameHeight: 167,
-      spacing: 1
-    });
-    this.load.image("old-npc-character", "/assets/character-o1-npc.png");
+    for (const definition of this.npcDefinitions) {
+      this.load.spritesheet(definition.sprite.key, definition.sprite.path, {
+        frameWidth: definition.sprite.frameWidth,
+        frameHeight: definition.sprite.frameHeight,
+        spacing: definition.sprite.spacing
+      });
+      this.load.image(definition.portrait.key, definition.portrait.path);
+
+      if (definition.audio) {
+        this.load.audio(definition.audio.key, definition.audio.path);
+      }
+    }
   }
 
   create() {
@@ -133,11 +82,18 @@ export class WorldScene extends BaseRpgScene {
     this.addHint("Ciudad exterior: muevete con WASD/Flechas. El borde esta bloqueado.");
   }
 
-  update() {
+  update(time: number, delta: number) {
     if (this.dialogOpen) {
       const body = this.player.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(0);
       this.player.anims.stop();
+      this.dialogueTypewriter.update(delta);
+      this.routeFlow?.setVisible(this.dialogueTypewriter.isComplete());
+
+      if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+        this.dialogueTypewriter.skip();
+        this.routeFlow?.setVisible(true);
+      }
 
       if (Phaser.Input.Keyboard.JustDown(this.qKey)) {
         this.closeDialog();
@@ -152,9 +108,7 @@ export class WorldScene extends BaseRpgScene {
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       const nearbyNpc = this.findNearbyNpc();
       if (nearbyNpc) {
-        this.activeNpcId = nearbyNpc.definition.id;
-        this.activeNpcPortraitKey = nearbyNpc.definition.portraitKey;
-        this.activeNpcName = nearbyNpc.definition.name;
+        this.activeNpc = nearbyNpc;
         this.openDialog();
         return;
       }
@@ -166,11 +120,11 @@ export class WorldScene extends BaseRpgScene {
     this.updateNpcIndicators();
   }
 
-  private createNpc(definition: NpcDefinition) {
+  private createNpc(definition: NpcDefinition): NpcEntry {
     const sprite = this.physics.add.sprite(
       definition.x,
       definition.y,
-      definition.spriteKey,
+      definition.sprite.key,
       definition.frame ?? 0
     );
     sprite.setDisplaySize(definition.displayWidth, definition.displayHeight);
@@ -196,7 +150,8 @@ export class WorldScene extends BaseRpgScene {
       definition,
       sprite,
       indicatorBox,
-      indicatorLabel
+      indicatorLabel,
+      resultState: "idle"
     };
   }
 
@@ -220,7 +175,9 @@ export class WorldScene extends BaseRpgScene {
       return;
     }
 
+    this.dialogueBarHeight = this.activeNpc?.definition.routeFlow?.panelHeight ?? 212;
     this.dialogOpen = true;
+    this.playActiveNpcAudio();
     this.buildDialogUi();
   }
 
@@ -229,13 +186,31 @@ export class WorldScene extends BaseRpgScene {
       return;
     }
 
+    this.stopActiveNpcAudio();
     this.dialogOpen = false;
-    this.activeNpcId = null;
-    this.activeNpcPortraitKey = "";
-    this.activeNpcName = "";
+    this.activeNpc = null;
+    this.dialogueTypewriter.clear();
+    this.routeFlow?.destroy();
+    this.routeFlow = null;
     this.updateNpcIndicators();
     this.dialogElements.forEach(element => element.destroy());
     this.dialogElements = [];
+  }
+
+  private playActiveNpcAudio() {
+    const audio = this.activeNpc?.definition.audio;
+
+    if (audio) {
+      this.sound.play(audio.key);
+    }
+  }
+
+  private stopActiveNpcAudio() {
+    const audio = this.activeNpc?.definition.audio;
+
+    if (audio) {
+      this.sound.stopByKey(audio.key);
+    }
   }
 
   private updateNpcDepths() {
@@ -256,12 +231,30 @@ export class WorldScene extends BaseRpgScene {
   }
 
   private updateNpcIndicatorState(entry: NpcEntry) {
-    const state: NpcIndicatorState =
-      this.dialogOpen && this.activeNpcId === entry.definition.id ? "thinking" : "alert";
-    entry.indicatorLabel.setText(state === "thinking" ? "\u{1F914}" : "\u2757");
+    const state = this.getNpcIndicatorState(entry);
+    const labels: Record<NpcResultState, string> = {
+      idle: "\u2757",
+      thinking: "\u{1F914}",
+      happy: "\u263A\uFE0F",
+      angry: "\u{1F92C}"
+    };
+    entry.indicatorLabel.setText(labels[state]);
+  }
+
+  private getNpcIndicatorState(entry: NpcEntry): NpcResultState {
+    if (entry.resultState === "happy" || entry.resultState === "angry") {
+      return entry.resultState;
+    }
+
+    return this.dialogOpen && this.activeNpc === entry ? "thinking" : "idle";
   }
 
   private buildDialogUi() {
+    if (!this.activeNpc) {
+      return;
+    }
+
+    const definition = this.activeNpc.definition;
     const width = this.scale.width;
     const height = this.scale.height;
     const barY = height - this.dialogueBarHeight;
@@ -270,13 +263,13 @@ export class WorldScene extends BaseRpgScene {
 
     const portraitX = width - 250;
     const portraitY = barY;
-    const portrait = this.add.image(portraitX, portraitY, this.activeNpcPortraitKey);
+    const portrait = this.add.image(portraitX, portraitY, definition.portrait.key);
     portrait.setDisplaySize(400, 600);
 
     const portraitFrame = this.add.rectangle(portraitX, portraitY, 206, 206, 0x000000, 0);
 
     const title = this.add
-      .text(264, barY + 24, `${this.activeNpcName} is lost`, {
+      .text(264, barY + 24, `${definition.name} is lost`, {
         fontFamily: "monospace",
         fontSize: "26px",
         fontStyle: "bold",
@@ -293,13 +286,35 @@ export class WorldScene extends BaseRpgScene {
       .setOrigin(0);
 
     const placeholderText = this.add
-      .text(264, barY + 64, "Presiona Espacio junto a la NPC para abrir este evento.", {
+      .text(264, barY + 64, "", {
         fontFamily: "monospace",
         fontSize: "18px",
         color: "#f3ecef",
         wordWrap: { width: width - 360 }
       })
       .setOrigin(0);
+
+    this.dialogueTypewriter.attach(placeholderText);
+    this.dialogueTypewriter.start(definition.dialogueText, definition.dialogueTextSpeedMs ?? 24);
+
+    if (definition.routeFlow) {
+      this.routeFlow = new NpcRouteFlow(
+        this,
+        definition.routeFlow,
+        {
+          x: 264,
+          y: barY + 108,
+          width: width - 360,
+          height: this.dialogueBarHeight - 118
+        },
+        () => {
+          this.activeNpc!.resultState = "happy";
+          this.updateNpcIndicators();
+          this.routeFlow?.setVisible(true);
+        }
+      );
+      this.routeFlow.setVisible(false);
+    }
 
     [bar, barLine, portraitFrame, portrait, title, placeholderText, prompt].forEach(element => {
       element.setScrollFactor(0).setDepth(1000);
@@ -308,9 +323,11 @@ export class WorldScene extends BaseRpgScene {
   }
 
   private handleResize(gameSize: Phaser.Structs.Size) {
+    const activeNpc = this.activeNpc;
     this.updateCameraMode(gameSize.width, gameSize.height);
     if (this.dialogOpen) {
       this.closeDialog();
+      this.activeNpc = activeNpc;
       this.openDialog();
     }
   }
