@@ -50,8 +50,8 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     return { object, zone };
   }
 
-  protected tileToWorld(tile: number) {
-    return tile * this.tileSize * this.mapScale;
+  protected tileToWorld(tile: number, scale = this.mapScale) {
+    return tile * this.tileSize * scale;
   }
 
   protected setPlayerIdle(direction: Direction) {
@@ -169,6 +169,35 @@ export abstract class BaseRpgScene extends Phaser.Scene {
     );
 
     return { map, ground, objects, collision };
+  }
+
+  protected buildCollisionMap(
+    mapKey: string,
+    tilesetImageKey: string,
+    tilesetName = tilesetImageKey,
+    layerName = "Collision",
+    offsetX = 0,
+    offsetY = 0,
+    scale = 1
+  ) {
+    const map = this.make.tilemap({ key: mapKey });
+    const tileset = map.addTilesetImage(tilesetName, tilesetImageKey);
+
+    if (!tileset) {
+      throw new Error(`Tileset "${tilesetName}" could not be resolved for map "${mapKey}".`);
+    }
+
+    const collision = map.createLayer(layerName, tileset, offsetX, offsetY)!;
+    collision.setScale(scale);
+    collision.setCollisionByExclusion([-1]);
+    collision.setVisible(false);
+
+    const boundsWidth = map.widthInPixels * scale;
+    const boundsHeight = map.heightInPixels * scale;
+    this.physics.world.setBounds(offsetX, offsetY, boundsWidth, boundsHeight);
+    this.cameras.main.setBounds(offsetX, offsetY, boundsWidth, boundsHeight);
+
+    return { map, collision };
   }
 
   protected addHint(text: string) {

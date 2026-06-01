@@ -4,10 +4,9 @@ Minimal kit to validate a 2D RPG in the style of Pokemon using Phaser, TypeScrip
 
 ## What this prototype covers
 
-- Exterior world map with a small city/countryside layout, houses, roads, trees, collisions, and a door trigger.
+- Exterior world built from `world-complete.png` with a Tiled collision layer.
 - Interior house map with floor, walls, collisions, and an exit trigger.
 - Basic player sprite with 4-direction movement.
-- Scene transitions between world and house.
 - Camera follow with map bounds.
 
 ## How to run it
@@ -27,13 +26,15 @@ pnpm build
 ## Controls
 
 - WASD or arrow keys: move the player.
-- Walk over the door trigger to enter or leave the house.
+- Stay inside the world bounds; the outer border is blocked.
 
 ## Important files
 
+- `public/assets/maps/world-complete.png`
+- `public/assets/maps/world-complete.map.json`
+- `public/assets/tilesets/collision-grid.png`
 - `public/assets/tilesets/minimal-rpg-tileset.png`
-- `public/assets/sprites/player.png`
-- `public/assets/maps/world.map.json`
+- `public/assets/sprites/prota-sprite.png`
 - `public/assets/maps/house.map.json`
 - `src/scenes/WorldScene.ts`
 - `src/scenes/HouseScene.ts`
@@ -42,5 +43,5 @@ pnpm build
 
 - The project is set up for pnpm only.
 - The TypeScript build now has a `tsconfig.json`.
-- The exterior map is now a compact town-like area with a walkable route and an enterable house.
-- The two scenes preserve their spawn points through transitions.
+- The exterior map now uses a full-screen background image and a separate Tiled collision layer.
+- The exterior scene currently contains only the player character.
