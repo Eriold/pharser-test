@@ -45,3 +45,7 @@ pnpm build
 - The TypeScript build now has a `tsconfig.json`.
 - The exterior map now uses a full-screen background image and a separate Tiled collision layer.
 - The exterior scene currently contains only the player character.
+
+## Project experience
+
+- A short reflection on what this prototype taught us lives in [`docs/project-experience.md`](docs/project-experience.md).
