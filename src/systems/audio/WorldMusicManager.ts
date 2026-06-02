@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { assetUrl } from "../../utils/assetUrl";
 
 const backgroundMusicKey = "background-music";
 const challengeLoopKey = "challenge-loop";
@@ -10,8 +11,8 @@ export class WorldMusicManager {
   constructor(private readonly scene: Phaser.Scene) { }
 
   static preload(load: Phaser.Loader.LoaderPlugin) {
-    load.audio(backgroundMusicKey, "/assets/sounds/background.mp3");
-    load.audio(challengeLoopKey, "/assets/sounds/loop.m4a");
+    load.audio(backgroundMusicKey, assetUrl("/assets/sounds/background.mp3"));
+    load.audio(challengeLoopKey, assetUrl("/assets/sounds/loop.m4a"));
   }
 
   startCityMusic() {

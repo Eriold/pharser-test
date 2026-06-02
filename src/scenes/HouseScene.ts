@@ -1,3 +1,4 @@
+import { assetUrl } from "../utils/assetUrl";
 import { BaseRpgScene } from "./BaseRpgScene";
 
 type HouseSceneData = {
@@ -35,7 +36,7 @@ export class HouseScene extends BaseRpgScene {
 
   preload() {
     super.preload();
-    this.load.tilemapTiledJSON("house", "/assets/maps/house.map.json");
+    this.load.tilemapTiledJSON("house", assetUrl("/assets/maps/house.map.json"));
   }
 
   create() {

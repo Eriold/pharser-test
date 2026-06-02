@@ -1,3 +1,4 @@
+import { assetUrl } from "../utils/assetUrl";
 import type { NpcDefinition } from "../systems/npc/NpcTypes";
 import { ALL_SPRITES_CHARACTER_NPCS } from "./allSpritesCharacterNpcs";
 import { createArrangeStage, createChoiceStage, createRouteFlow } from "./npcRoutePresets";
@@ -111,17 +112,17 @@ export const NPC_DEFINITIONS: NpcDefinition[] = [
     name: "Miguel",
     sprite: {
       key: "boy1-npc",
-      path: "/assets/sprites/prota-sprite.png",
+      path: assetUrl("/assets/sprites/prota-sprite.png"),
       frameWidth: 96,
       frameHeight: 108
     },
     portrait: {
       key: "boy1-npc-character",
-      path: "/assets/character-b1-npc.png"
+      path: assetUrl("/assets/character-b1-npc.png")
     },
     audio: {
       key: "boy1-npc-audio",
-      path: "/assets/sounds/b1-npc.m4a"
+      path: assetUrl("/assets/sounds/b1-npc.m4a")
     },
     dialogueText: "Hi Hanlly, I'm lost here on the beach and my family is having a birthday celebration, but I don't know where the restaurant is. Can you tell me how to get there?",
     dialogueTextSpeedMs: 24,
@@ -151,17 +152,17 @@ export const NPC_DEFINITIONS: NpcDefinition[] = [
     name: "Sara",
     sprite: {
       key: "girl-npc",
-      path: "/assets/sprites/g1-npc.png",
+      path: assetUrl("/assets/sprites/g1-npc.png"),
       frameWidth: 96,
       frameHeight: 108
     },
     portrait: {
       key: "girl-npc-character",
-      path: "/assets/character-g1-npc.png"
+      path: assetUrl("/assets/character-g1-npc.png")
     },
     audio: {
       key: "girl-npc-audio",
-      path: "/assets/sounds/g1-npc.m4a"
+      path: assetUrl("/assets/sounds/g1-npc.m4a")
     },
     dialogueText: "Good afternoon Hanlly, I missed the bus, can you tell me how to get to school?",
     dialogueTextSpeedMs: 24,
@@ -190,18 +191,18 @@ export const NPC_DEFINITIONS: NpcDefinition[] = [
     name: "Old Gerardo",
     sprite: {
       key: "old-npc",
-      path: "/assets/sprites/o1-npc-png.png",
+      path: assetUrl("/assets/sprites/o1-npc-png.png"),
       frameWidth: 167,
       frameHeight: 167,
       spacing: 1
     },
     portrait: {
       key: "old-npc-character",
-      path: "/assets/character-o1-npc.png"
+      path: assetUrl("/assets/character-o1-npc.png")
     },
     audio: {
       key: "old-npc-audio",
-      path: "/assets/sounds/o1-npc.m4a"
+      path: assetUrl("/assets/sounds/o1-npc.m4a")
     },
     dialogueText: "Hi Hanlly, I'm tired and lost, could you help me? I need to get to the library.",
     dialogueTextSpeedMs: 70,

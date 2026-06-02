@@ -11,6 +11,7 @@ import type { NpcDefinition, NpcEntry, NpcResultState } from "../systems/npc/Npc
 import { NpcRouteFlow } from "../systems/npc/NpcRouteFlow";
 import { WorldMusicManager } from "../systems/audio/WorldMusicManager";
 import { BaseRpgScene } from "./BaseRpgScene";
+import { assetUrl } from "../utils/assetUrl";
 type WorldSceneData = {
   spawnX?: number;
   spawnY?: number;
@@ -47,9 +48,9 @@ export class WorldScene extends BaseRpgScene {
   }
   preload() {
     super.preload();
-    this.load.tilemapTiledJSON("world-complete-map", "/assets/maps/world-complete.map.json");
-    this.load.image("world-complete", "/assets/maps/world-complete.png");
-    this.load.image("collision-grid", "/assets/tilesets/collision-grid.png");
+    this.load.tilemapTiledJSON("world-complete-map", assetUrl("/assets/maps/world-complete.map.json"));
+    this.load.image("world-complete", assetUrl("/assets/maps/world-complete.png"));
+    this.load.image("collision-grid", assetUrl("/assets/tilesets/collision-grid.png"));
     WorldMusicManager.preload(this.load);
     const seenSpriteKeys = new Set<string>();
     const seenPortraitKeys = new Set<string>();

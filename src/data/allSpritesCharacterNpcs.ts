@@ -1,9 +1,10 @@
+import { assetUrl } from "../utils/assetUrl";
 import type { NpcDefinition } from "../systems/npc/NpcTypes";
 import { createArrangeStage, createChoiceStage, createRouteFlow } from "./npcRoutePresets";
 
 const allSpritesSheet = {
   key: "all-sprites-characters",
-  path: "/assets/sprites/all-sprites-characters.png",
+  path: assetUrl("/assets/sprites/all-sprites-characters.png"),
   frameWidth: 96,
   frameHeight: 108
 };
@@ -32,11 +33,11 @@ function createSheetNpc(
     sprite: allSpritesSheet,
     portrait: {
       key: `character-${id}`,
-      path: `/assets/character-${id}.png`
+      path: assetUrl(`/assets/character-${id}.png`)
     },
     audio: {
       key: `${id}-audio`,
-      path: `/assets/sounds/${id}.m4a`
+      path: assetUrl(`/assets/sounds/${id}.m4a`)
     },
     dialogueText,
     dialogueTextSpeedMs: 24,

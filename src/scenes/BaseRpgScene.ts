@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { assetUrl } from "../utils/assetUrl";
 
 type Direction = "down" | "left" | "right" | "up";
 
@@ -12,8 +13,8 @@ export abstract class BaseRpgScene extends Phaser.Scene {
   protected readonly mapScale = 2;
 
   preload() {
-    this.load.image("tiles", "/assets/tilesets/minimal-rpg-tileset.png");
-    this.load.spritesheet("player", "/assets/sprites/prota-g-sprite.png", {
+    this.load.image("tiles", assetUrl("/assets/tilesets/minimal-rpg-tileset.png"));
+    this.load.spritesheet("player", assetUrl("/assets/sprites/prota-g-sprite.png"), {
       frameWidth: 96,
       frameHeight: 108
     });
