@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { EndGameScene } from "./scenes/EndGameScene";
+import { LoseScene } from "./scenes/LoseScene";
 import { WorldScene } from "./scenes/WorldScene";
 import { HouseScene } from "./scenes/HouseScene";
 
@@ -25,7 +27,7 @@ const game = new Phaser.Game({
     default: "arcade",
     arcade: { debug: false }
   },
-  scene: [WorldScene, HouseScene]
+  scene: [WorldScene, HouseScene, EndGameScene, LoseScene]
 });
 
 const syncInitialSize = () => {

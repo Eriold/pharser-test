@@ -1,0 +1,36 @@
+import type Phaser from "phaser";
+
+const backgroundMusicKey = "background-music";
+const challengeLoopKey = "challenge-loop";
+
+export class WorldMusicManager {
+  constructor(private readonly scene: Phaser.Scene) {}
+
+  static preload(load: Phaser.Loader.LoaderPlugin) {
+    load.audio(backgroundMusicKey, "/assets/sounds/background.mp3");
+    load.audio(challengeLoopKey, "/assets/sounds/loop.m4a");
+  }
+
+  startCityMusic() {
+    this.scene.sound.stopByKey(challengeLoopKey);
+    this.scene.sound.play(backgroundMusicKey, { loop: true, volume: 0.45 });
+  }
+
+  pauseCityMusic() {
+    this.scene.sound.stopByKey(backgroundMusicKey);
+  }
+
+  startChallengeMusic() {
+    this.scene.sound.stopByKey(backgroundMusicKey);
+    this.scene.sound.play(challengeLoopKey, { loop: true, volume: 0.55 });
+  }
+
+  stopChallengeMusic() {
+    this.scene.sound.stopByKey(challengeLoopKey);
+  }
+
+  stopAll() {
+    this.scene.sound.stopByKey(backgroundMusicKey);
+    this.scene.sound.stopByKey(challengeLoopKey);
+  }
+}
