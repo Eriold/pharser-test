@@ -29,9 +29,11 @@ export class WorldScene extends BaseRpgScene {
   private dialogueTypewriter = new NpcDialogueTypewriter();
   private routeFlow: NpcRouteFlow | null = null;
   private successCloseTimer: Phaser.Time.TimerEvent | null = null;
+  private challengeLoopDelayTimer: Phaser.Time.TimerEvent | null = null;
   private endGameQueued = false;
   private endGameStarted = false;
   private challengeLoopStarted = false;
+  private npcDialogueAudioComplete = false;
   private music!: WorldMusicManager;
   private readonly talkDistance = 120;
   private dialogueBarHeight = 212;
@@ -119,11 +121,7 @@ export class WorldScene extends BaseRpgScene {
       this.player.anims.stop();
       this.dialogueTypewriter.update(delta);
       this.routeFlow?.setVisible(this.dialogueTypewriter.isComplete());
-      if (this.routeFlow && this.dialogueTypewriter.isComplete() && !this.isTerminalDialogueActive() && !this.challengeLoopStarted) {
-        this.challengeLoopStarted = true;
-        this.music.startChallengeMusic();
-      }
-
+      this.scheduleChallengeMusicStart();
       if (this.isSuccessDialogueActive() && this.dialogueTypewriter.isComplete()) {
         this.scheduleSuccessClose();
       }
@@ -134,11 +132,9 @@ export class WorldScene extends BaseRpgScene {
           this.scheduleSuccessClose();
         }
       }
-
       if (Phaser.Input.Keyboard.JustDown(this.qKey)) {
         this.closeDialog();
       }
-
       this.player.setDepth(this.player.y);
       this.updateNpcDepths();
       this.updateNpcIndicators();
@@ -152,7 +148,6 @@ export class WorldScene extends BaseRpgScene {
         return;
       }
     }
-
     this.movePlayer();
     this.player.setDepth(this.player.y);
     this.updateNpcDepths();
@@ -170,7 +165,6 @@ export class WorldScene extends BaseRpgScene {
         this.npcs.map(entry => ({ x: entry.sprite.x, y: entry.sprite.y }))
       )
       : { x: definition.x, y: definition.y };
-
     const sprite = this.add.sprite(
       spawn.x,
       spawn.y,
@@ -189,7 +183,6 @@ export class WorldScene extends BaseRpgScene {
         color: "#111111"
       })
       .setOrigin(0.5);
-
     return {
       definition,
       sprite,
@@ -201,7 +194,6 @@ export class WorldScene extends BaseRpgScene {
   private findNearbyNpc() {
     let nearest: NpcEntry | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
-
     for (const entry of this.npcs) {
       const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, entry.sprite.x, entry.sprite.y);
       if (distance <= this.talkDistance && distance < nearestDistance) {
@@ -209,20 +201,23 @@ export class WorldScene extends BaseRpgScene {
         nearestDistance = distance;
       }
     }
-
     return nearest;
   }
   private openDialog() {
     if (this.dialogOpen) {
       return;
     }
-
     this.dialogueBarHeight = this.isTerminalDialogueActive() ? 212 : this.activeNpc?.definition.routeFlow?.panelHeight ?? 212;
     this.dialogOpen = true;
     this.challengeLoopStarted = false;
+    this.npcDialogueAudioComplete = this.isTerminalDialogueActive();
+    this.clearChallengeLoopTimer();
     this.music.pauseCityMusic();
     if (!this.isTerminalDialogueActive()) {
-      playNpcAudio(this, this.activeNpc);
+      playNpcAudio(this, this.activeNpc, () => {
+        this.npcDialogueAudioComplete = true;
+        this.scheduleChallengeMusicStart();
+      });
     }
     this.renderDialogUi();
   }
@@ -230,9 +225,9 @@ export class WorldScene extends BaseRpgScene {
     if (!this.dialogOpen) {
       return;
     }
-
     stopNpcAudio(this, this.activeNpc);
     this.clearSuccessCloseTimer();
+    this.clearChallengeLoopTimer();
     this.dialogOpen = false;
     this.activeNpc = null;
     this.dialogueTypewriter.clear();
@@ -243,6 +238,7 @@ export class WorldScene extends BaseRpgScene {
     this.dialogElements = [];
     this.music.stopChallengeMusic();
     this.challengeLoopStarted = false;
+    this.npcDialogueAudioComplete = false;
     if (this.endGameQueued && !this.endGameStarted) {
       this.endGameQueued = false;
       this.endGameStarted = true;
@@ -280,7 +276,6 @@ export class WorldScene extends BaseRpgScene {
     if (!this.activeNpc) {
       return;
     }
-
     const isSuccessDialogue = this.isSuccessDialogueActive();
     const isFailureDialogue = this.isFailureDialogueActive();
     const { elements, routeFlow } = buildNpcDialogUi({
@@ -294,7 +289,6 @@ export class WorldScene extends BaseRpgScene {
         if (!this.activeNpc) {
           return;
         }
-
         this.activeNpc.resultState = success ? "happy" : "angry";
         if (!success && registerNpcFailure(this, 3)) {
           this.updateNpcIndicators();
@@ -308,7 +302,6 @@ export class WorldScene extends BaseRpgScene {
         this.refreshDialogUi();
       }
     });
-
     this.dialogElements = elements;
     this.routeFlow = routeFlow;
   }
@@ -327,20 +320,17 @@ export class WorldScene extends BaseRpgScene {
     if (entry.resultState === "happy" || entry.resultState === "angry") {
       return entry.resultState;
     }
-
     return this.dialogOpen && this.activeNpc === entry ? "thinking" : "idle";
   }
   private isSuccessDialogueActive() {
     return this.activeNpc?.resultState === "happy";
   }
-
   private isFailureDialogueActive() {
     return this.activeNpc?.resultState === "angry";
   }
   private isTerminalDialogueActive() {
     return this.isSuccessDialogueActive() || this.isFailureDialogueActive();
   }
-
   private areAllChallengeNpcsComplete() {
     return this.npcs.filter(entry => entry.definition.routeFlow).every(entry => entry.resultState === "happy");
   }
@@ -348,7 +338,6 @@ export class WorldScene extends BaseRpgScene {
     if (this.successCloseTimer || !this.dialogOpen) {
       return;
     }
-
     const delay = this.activeNpc?.definition.successAutoCloseDelayMs ?? 1400;
     this.successCloseTimer = this.time.delayedCall(delay, () => {
       this.successCloseTimer = null;
@@ -358,6 +347,26 @@ export class WorldScene extends BaseRpgScene {
   private clearSuccessCloseTimer() {
     this.successCloseTimer?.remove(false);
     this.successCloseTimer = null;
+  }
+  private clearChallengeLoopTimer() {
+    this.challengeLoopDelayTimer?.remove(false);
+    this.challengeLoopDelayTimer = null;
+  }
+  private scheduleChallengeMusicStart() {
+    if (this.challengeLoopStarted || this.challengeLoopDelayTimer || !this.dialogOpen || this.isTerminalDialogueActive()) {
+      return;
+    }
+    if (!this.routeFlow || !this.dialogueTypewriter.isComplete() || !this.npcDialogueAudioComplete) {
+      return;
+    }
+    this.challengeLoopDelayTimer = this.time.delayedCall(2000, () => {
+      this.challengeLoopDelayTimer = null;
+      if (!this.dialogOpen || this.isTerminalDialogueActive() || this.challengeLoopStarted) {
+        return;
+      }
+      this.challengeLoopStarted = true;
+      this.music.startChallengeMusic();
+    });
   }
   private handleResize(gameSize: Phaser.Structs.Size) {
     const activeNpc = this.activeNpc;
@@ -372,21 +381,16 @@ export class WorldScene extends BaseRpgScene {
     if (this.worldWidth === 0 || this.worldHeight === 0) {
       return;
     }
-
     this.cameras.resize(viewWidth, viewHeight);
-
     const worldFits = viewWidth >= this.worldWidth && viewHeight >= this.worldHeight;
-
     if (worldFits) {
       const scrollX = -(viewWidth - this.worldWidth) / 2;
       const scrollY = -(viewHeight - this.worldHeight) / 2;
-
       this.cameras.main.stopFollow();
       this.cameras.main.removeBounds();
       this.cameras.main.setScroll(scrollX, scrollY);
       return;
     }
-
     this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
   }
